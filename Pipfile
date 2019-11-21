@@ -7,11 +7,7 @@ verify_ssl = true
 flake8 = "*"
 
 [packages]
-certifi = "==2019.9.11"
-chardet = "==3.0.4"
-idna = "==2.8"
-requests = "==2.22.0"
-urllib3 = "==1.25.6"
+django = "*"
 
 [requires]
-python_version = "3.7"
+python_version = "3.8"
