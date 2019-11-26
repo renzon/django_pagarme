@@ -1,6 +1,6 @@
 name: Python application
 
-on: [push]
+on: [pull_request]
 
 jobs:
   build:
@@ -27,5 +27,4 @@ jobs:
         pipenv run flake8 . --count --exit-zero --max-complexity=10 --statistics
     - name: Test with pytest
       run: |
-        # pipenv install pytest
         pipenv run pytest
