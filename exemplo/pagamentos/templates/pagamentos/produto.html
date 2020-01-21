@@ -22,7 +22,7 @@
                 encryption_key: '{{CHAVE_PAGARME_CRIPTOGRAFIA_PUBLICA}}',
                 success: function (data) {
                     $.post('{% url 'pagamentos:captura' %}', data, function (tokenData) {
-                        console.log(tokenData);
+                        alert('Pagamento feito com sucesso');
                     });
                 },
                 error: function (err) {
