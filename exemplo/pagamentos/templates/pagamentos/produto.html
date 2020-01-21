@@ -1,0 +1,60 @@
+<html>
+<head>
+    <!-- SCRIPT PAGAR.ME -->
+    <script src="//assets.pagar.me/checkout/1.1.0/checkout.js"></script>
+    <script src="//code.jquery.com/jquery-3.4.1.js"
+            integrity="sha256-WpOohJOqMqqyKL9FccASB9O0KwACQJpFTUBLTYOVvVU="
+            crossorigin="anonymous"></script>
+</head>
+<body>
+<button id="pay-button">Abrir modal de pagamento</button>
+
+<script>
+
+    $(document).ready(function () {
+        var $button = $('button');
+
+        // Abrir o modal ao clicar no botão
+        $button.click(function () {
+
+            // inicia a instância do checkout
+            var checkout = new PagarMeCheckout.Checkout({
+                encryption_key: 'ek_test_7yPmonkinrcWM4aRdAcLBuTNkf3Xle',
+                success: function (data) {
+                    $.post('{% url 'pagamentos:captura' %}', data, function (tokenData) {
+                        console.log(tokenData);
+                    });
+                },
+                error: function (err) {
+                    console.log(err);
+                },
+                close: function () {
+                    console.log('The modal has been closed.');
+                }
+            });
+
+            // Obs.: é necessário passar os valores boolean como string
+
+            checkout.open({
+                amount: 8000,
+                buttonText: 'Pagar',
+                buttonClass: 'botao-pagamento',
+                customerData: 'true',
+                createToken: 'true',
+                paymentMethods: 'credit_card,boleto',
+                items: [
+                    {
+                        id: '1',
+                        title: 'Cadeira',
+                        unit_price: 8000,
+                        quantity: 1,
+                        tangible: false
+                    }
+                ]
+            });
+        });
+    });
+
+</script>
+</body>
+</html>
