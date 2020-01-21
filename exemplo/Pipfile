@@ -6,11 +6,13 @@ verify_ssl = true
 [dev-packages]
 pytest-django = "*"
 flake8 = "*"
+responses = "*"
 
 [packages]
 django = "*"
 ed0a5ba = {editable = true,path = "./.."}
 python-decouple = "*"
+pagarme-python = "*"
 
 [requires]
 python_version = "3.8"
