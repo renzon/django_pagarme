@@ -19,7 +19,7 @@
 
             // inicia a instância do checkout
             var checkout = new PagarMeCheckout.Checkout({
-                encryption_key: 'ek_test_7yPmonkinrcWM4aRdAcLBuTNkf3Xle',
+                encryption_key: '{{CHAVE_PAGARME_CRIPTOGRAFIA_PUBLICA}}',
                 success: function (data) {
                     $.post('{% url 'pagamentos:captura' %}', data, function (tokenData) {
                         console.log(tokenData);

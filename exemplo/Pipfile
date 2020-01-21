@@ -10,6 +10,7 @@ flake8 = "*"
 [packages]
 django = "*"
 ed0a5ba = {editable = true,path = "./.."}
+python-decouple = "*"
 
 [requires]
 python_version = "3.8"

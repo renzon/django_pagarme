@@ -30,4 +30,5 @@ jobs:
     - name: Test with pytest
       working-directory: ./exemplo
       run: |
+        cp ../contrib/env-amostra .env
         pipenv run pytest
