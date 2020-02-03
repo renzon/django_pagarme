@@ -9,6 +9,7 @@ flake8 = "*"
 responses = "*"
 codecov = "*"
 pytest-cov = "*"
+model-bakery = "*"
 
 [packages]
 django = "*"

@@ -1,3 +1,4 @@
+{% load django_pagarme %}
 <html>
 <head>
     <!-- SCRIPT PAGAR.ME -->
@@ -8,53 +9,6 @@
 </head>
 <body>
 <button id="pay-button">Abrir modal de pagamento</button>
-
-<script>
-
-    $(document).ready(function () {
-        var $button = $('button');
-
-        // Abrir o modal ao clicar no botão
-        $button.click(function () {
-
-            // inicia a instância do checkout
-            var checkout = new PagarMeCheckout.Checkout({
-                encryption_key: '{{CHAVE_PAGARME_CRIPTOGRAFIA_PUBLICA}}',
-                success: function (data) {
-                    $.post('{% url 'pagamentos:captura' %}', data, function (tokenData) {
-                        alert('Pagamento feito com sucesso');
-                    });
-                },
-                error: function (err) {
-                    console.log(err);
-                },
-                close: function () {
-                    console.log('The modal has been closed.');
-                }
-            });
-
-            // Obs.: é necessário passar os valores boolean como string
-
-            checkout.open({
-                amount: 8000,
-                buttonText: 'Pagar',
-                buttonClass: 'botao-pagamento',
-                customerData: 'true',
-                createToken: 'true',
-                paymentMethods: 'credit_card,boleto',
-                items: [
-                    {
-                        id: '1',
-                        title: 'Cadeira',
-                        unit_price: 8000,
-                        quantity: 1,
-                        tangible: false
-                    }
-                ]
-            });
-        });
-    });
-
-</script>
+{% show_pagarme sellable %}
 </body>
 </html>

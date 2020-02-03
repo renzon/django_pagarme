@@ -5,11 +5,13 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from pagarme import authentication_key, transaction
 
+from django_pagarme import facade
+
 authentication_key(settings.CHAVE_PAGARME_API_PRIVADA)
 
 
-def produto(request):
-    ctx = {'CHAVE_PAGARME_CRIPTOGRAFIA_PUBLICA': settings.CHAVE_PAGARME_CRIPTOGRAFIA_PUBLICA}
+def produto(request, slug: str):
+    ctx = {'sellable': facade.get_sellable(slug)}
     return render(request, 'pagamentos/produto.html', ctx)
 
 
