@@ -31,4 +31,11 @@ jobs:
       working-directory: ./exemplo
       run: |
         cp ../contrib/env-amostra .env
-        pipenv run pytest
+        pipenv run pytest --cov=../django_pagarme
+    - name: Posting Coverage
+      working-directory: ./exemplo
+      env:
+        CODECOV_TOKEN: "2e4566cb-8fbb-42d9-bc91-d2b1b4719932"
+      run: |
+        pipenv run codecov
+
