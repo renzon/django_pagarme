@@ -1,0 +1,52 @@
+{% load django_pagarme %}
+<script type="application/javascript">
+    $(document).ready(function () {
+        var $button = $('button');
+
+        // Abrir o modal ao clicar no botão
+        $button.click(function () {
+
+            // inicia a instância do checkout
+            var checkout = new PagarMeCheckout.Checkout({
+                encryption_key: '{{CHAVE_PAGARME_CRIPTOGRAFIA_PUBLICA}}',
+                success: function (data) {
+                    $.post('{% url 'pagamentos:captura' %}', data, function (tokenData) {
+                            alert('Pagamento feito com sucesso');
+                        }
+                    )
+                    ;
+                },
+                error: function (err) {
+                    console.log(err);
+                },
+                close: function () {
+                    console.log('The modal has been closed.');
+                }
+            });
+
+            // Obs.: é necessário passar os valores boolean como string
+
+            checkout.open({
+                amount: {{sellable.price}},
+                buttonText: 'Pagar',
+                buttonClass: 'botao-pagamento',
+                customerData: 'true',
+                createToken: 'true',
+                paymentMethods: '{{sellable.default_option.payments_methods}}',
+                maxInstallments: {{sellable.default_option.max_installments}},
+                defaultInstallment: {{sellable.default_option.default_installment}},
+                freeInstallments: {{sellable.default_option.free_installment}},
+                interestRate: {{sellable.default_option.interest_rate|interest_rate}},
+                items: [
+                    {
+                        id: '{{sellable.slug}}',
+                        title: '{{sellable.name}}',
+                        unit_price: {{sellable.price}},
+                        quantity: 1,
+                        tangible: '{{sellable.tangible|lower}}'
+                    }
+                ]
+            });
+        });
+    });
+</script>

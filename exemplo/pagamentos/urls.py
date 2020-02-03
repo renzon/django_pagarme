@@ -19,6 +19,6 @@ from pagamentos import views
 
 app_name = 'pagamentos'
 urlpatterns = [
-    path('produto', views.produto, name='produto'),
+    path('produto/<slug:slug>', views.produto, name='produto'),
     path('captura', views.captura, name='captura'),
 ]
