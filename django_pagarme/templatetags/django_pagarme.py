@@ -1,15 +1,15 @@
 from django import template
 from django.conf import settings
 
-from django_pagarme.models import Sellable
+from django_pagarme.models import PaymentItem
 
 register = template.Library()
 
 
 @register.inclusion_tag('django_pagarme/pagarme_js_form.html')
-def show_pagarme(sellable: Sellable):
+def show_pagarme(payment_item: PaymentItem):
     return {
-        'sellable': sellable,
+        'payment_item': payment_item,
         'CHAVE_PAGARME_CRIPTOGRAFIA_PUBLICA': settings.CHAVE_PAGARME_CRIPTOGRAFIA_PUBLICA
     }
 

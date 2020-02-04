@@ -27,23 +27,23 @@
             // Obs.: é necessário passar os valores boolean como string
 
             checkout.open({
-                amount: {{sellable.price}},
+                amount: {{payment_item.price}},
                 buttonText: 'Pagar',
                 buttonClass: 'botao-pagamento',
                 customerData: 'true',
                 createToken: 'true',
-                paymentMethods: '{{sellable.default_option.payments_methods}}',
-                maxInstallments: {{sellable.default_option.max_installments}},
-                defaultInstallment: {{sellable.default_option.default_installment}},
-                freeInstallments: {{sellable.default_option.free_installment}},
-                interestRate: {{sellable.default_option.interest_rate|interest_rate}},
+                paymentMethods: '{{payment_item.default_config.payments_methods}}',
+                maxInstallments: {{payment_item.default_config.max_installments}},
+                defaultInstallment: {{payment_item.default_config.default_installment}},
+                freeInstallments: {{payment_item.default_config.free_installment}},
+                interestRate: {{payment_item.default_config.interest_rate|interest_rate}},
                 items: [
                     {
-                        id: '{{sellable.slug}}',
-                        title: '{{sellable.name}}',
-                        unit_price: {{sellable.price}},
+                        id: '{{payment_item.slug}}',
+                        title: '{{payment_item.name}}',
+                        unit_price: {{payment_item.price}},
                         quantity: 1,
-                        tangible: '{{sellable.tangible|lower}}'
+                        tangible: '{{payment_item.tangible|lower}}'
                     }
                 ]
             });
