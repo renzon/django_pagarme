@@ -1,12 +1,12 @@
-from django_pagarme.models import Sellable
+from django_pagarme.models import PaymentItem
 
-__all__ = ['get_sellable']
+__all__ = ['get_payment_item']
 
 
-def get_sellable(slug: str) -> Sellable:
+def get_payment_item(slug: str) -> PaymentItem:
     """
-    Find Sellable with its SellableOption on database
+    Find PaymentItem with its PaymentConfig on database
     :param slug:
-    :return: Sellable
+    :return: PaymentItem
     """
-    return Sellable.objects.filter(slug=slug).select_related('default_option').get()
+    return PaymentItem.objects.filter(slug=slug).select_related('default_config').get()
