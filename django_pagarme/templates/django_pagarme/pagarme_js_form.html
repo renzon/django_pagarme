@@ -1,6 +1,8 @@
 {% load django_pagarme %}
+{% csrf_token %}
 <script type="application/javascript">
     $(document).ready(function () {
+        var csfr_token = document.querySelector('[name=csrfmiddlewaretoken]').value
         var $button = $('button');
 
         // Abrir o modal ao clicar no botão
@@ -10,11 +12,19 @@
             var checkout = new PagarMeCheckout.Checkout({
                 encryption_key: '{{CHAVE_PAGARME_CRIPTOGRAFIA_PUBLICA}}',
                 success: function (data) {
-                    $.post('{% url 'pagamentos:captura' %}', data, function (tokenData) {
+                    $.ajax({
+                        url: '{% url 'django_pagarme:capture' %}',
+                        type: 'post',
+                        'data': data,
+                        headers: {
+                            "X-CSRFTOKEN": csfr_token
+                        },
+                        dataType: 'json',
+                        mode: 'same-origin',
+                        success: function (tokenData) {
                             alert('Pagamento feito com sucesso');
                         }
-                    )
-                    ;
+                    });
                 },
                 error: function (err) {
                     console.log(err);
