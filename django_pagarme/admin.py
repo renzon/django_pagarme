@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from django_pagarme.models import PaymentConfig, PaymentItem
+from django_pagarme.models import PagarmePayment, PaymentConfig, PaymentItem
 
 
 @admin.register(PaymentItem)
@@ -13,3 +13,9 @@ class PaymentItemAdmin(admin.ModelAdmin):
 @admin.register(PaymentConfig)
 class PaymentOptionsAdmin(admin.ModelAdmin):
     pass
+
+
+@admin.register(PagarmePayment)
+class PagarmePaymentAdmin(admin.ModelAdmin):
+    list_display = ('payment_method', 'amount', 'card_id', 'card_last_digits', 'boleto_url', 'installments')
+    list_filter = ('payment_method', 'items')
