@@ -1,15 +1,19 @@
 from django import template
 from django.conf import settings
+from django.urls import reverse
 
-from django_pagarme.models import PaymentItem
+from django_pagarme.models import PagarmeItemConfig
 
 register = template.Library()
 
 
 @register.inclusion_tag('django_pagarme/pagarme_js_form.html')
-def show_pagarme(payment_item: PaymentItem):
+def show_pagarme(payment_item: PagarmeItemConfig):
+    notification_path = reverse('django_pagarme:notification')
+    domain = settings.ALLOWED_HOSTS[0]
     return {
         'payment_item': payment_item,
+        'postback_url': f'https://{domain}{notification_path}',
         'CHAVE_PAGARME_CRIPTOGRAFIA_PUBLICA': settings.CHAVE_PAGARME_CRIPTOGRAFIA_PUBLICA
     }
 

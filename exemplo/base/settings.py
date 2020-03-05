@@ -30,7 +30,7 @@ CHAVE_PAGARME_CRIPTOGRAFIA_PUBLICA = config('CHAVE_PAGARME_CRIPTOGRAFIA_PUBLICA'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['e0f89dca.ngrok.io', 'localhost']
 
 # Application definition
 
@@ -120,3 +120,5 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.2/howto/static-files/
 
 STATIC_URL = '/static/'
+
+
