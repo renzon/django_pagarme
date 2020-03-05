@@ -3,7 +3,8 @@ import responses
 from django.urls import reverse
 from model_bakery import baker
 
-from django_pagarme.models import PagarmePayment, PaymentConfig, PaymentItem
+from django_pagarme import facade
+from django_pagarme.models import PagarmePayment, PagarmeFormConfig, PagarmeItemConfig
 
 TOKEN = 'test_transaction_aJx9ibUmRqYcQrrUaNtQ3arTO4tF1z'
 
@@ -11,7 +12,7 @@ TOKEN = 'test_transaction_aJx9ibUmRqYcQrrUaNtQ3arTO4tF1z'
 @pytest.fixture
 def payment_config(db):
     return baker.make(
-        PaymentConfig,
+        PagarmeFormConfig,
         max_installments=12,
         free_installment=1,
         interest_rate=1.66,
@@ -26,7 +27,7 @@ def test_calculate_amount(payment_config):
 @pytest.fixture
 def payment_item(payment_config):
     return baker.make(
-        PaymentItem,
+        PagarmeItemConfig,
         tangible=False,
         default_config=payment_config
     )
@@ -49,7 +50,7 @@ def test_status_code(resp):
     assert resp.status_code == 200
 
 
-def test_success_msg(resp, payment_item: PaymentItem):
+def test_success_msg(resp, payment_item: PagarmeItemConfig):
     assert resp.json() == {
         'payment_method': 'credit_card',
         'amount': payment_item.price
@@ -60,19 +61,26 @@ def test_pagarme_payment_creation(resp):
     assert PagarmePayment.objects.exists()
 
 
-def test_pagarme_payment_data(resp, transaction_json, payment_item: PaymentItem):
+def test_pagarme_payment_data(resp, transaction_json, payment_item: PagarmeItemConfig):
     payment = PagarmePayment.objects.first()
     assert (
                payment.card_id,
                payment.card_last_digits,
                payment.installments,
                list(payment.items.all()),
+               payment.transaction_id
            ) == (
                transaction_json['card']['id'],
                transaction_json['card_last_digits'],
                transaction_json['installments'],
                [payment_item],
+               str(transaction_json['id'])
            )
+
+
+def test_pagarme_payment_initial_configuration(resp):
+    payment = facade.find_payment(str(TRANSACTION_ID))
+    assert [n.status for n in payment.notifications.all()] == [facade.AUTHORIZED]
 
 
 def _invalid_resp(tampered_item_price_json):
@@ -84,7 +92,7 @@ def _invalid_resp(tampered_item_price_json):
 # Testing tampered item price
 
 @pytest.fixture
-def tampered_item_price_json(transaction_json, payment_item: PaymentItem):
+def tampered_item_price_json(transaction_json, payment_item: PagarmeItemConfig):
     transaction_json['items'][0]['unit_price'] = payment_item.price - 1
     return transaction_json
 
@@ -113,7 +121,7 @@ def test_item_price_error_msg(resp_tampered_item_price, tampered_item_price_json
 # Test tampered total amount price:
 
 @pytest.fixture
-def tampered_authorized_amount_json(transaction_json, payment_item: PaymentItem):
+def tampered_authorized_amount_json(transaction_json, payment_item: PagarmeItemConfig):
     transaction_json['authorized_amount'] = payment_item.price - 1
     return transaction_json
 
@@ -142,7 +150,7 @@ def test_authorized_amount_error_msg(resp_tampered_authorized_amount, tampered_a
 # Test tampered installments:
 
 @pytest.fixture
-def tampered_installments_json(transaction_json, payment_config: PaymentConfig):
+def tampered_installments_json(transaction_json, payment_config: PagarmeFormConfig):
     transaction_json['installments'] = payment_config.max_installments + 1
     return transaction_json
 
@@ -161,7 +169,7 @@ def test_status_code_invalid_installments(resp_tampered_installments):
     assert resp_tampered_installments.status_code == 400
 
 
-def test_installments_error_msg(resp_tampered_installments, tampered_installments_json, payment_config: PaymentConfig):
+def test_installments_error_msg(resp_tampered_installments, tampered_installments_json, payment_config: PagarmeFormConfig):
     installments = tampered_installments_json['installments']
     assert resp_tampered_installments.json() == {
         'errors': f'Parcelamento em {installments} vez(es) é maior que o máximo {payment_config.max_installments}'
@@ -171,7 +179,7 @@ def test_installments_error_msg(resp_tampered_installments, tampered_installment
 # Test tampered interest)rate:
 
 @pytest.fixture
-def tampered_interest_rate_json(transaction_json, payment_config: PaymentConfig):
+def tampered_interest_rate_json(transaction_json, payment_config: PagarmeFormConfig):
     transaction_json['installments'] = 12  # Should charge interest and amount be 11991 and each installment 9.99
     return transaction_json
 
@@ -190,16 +198,17 @@ def test_status_code_invalid_interest_rate(resp_tampered_interest_rate):
     assert resp_tampered_interest_rate.status_code == 400
 
 
+TRANSACTION_ID = 7656690
 @pytest.fixture
-def transaction_json(payment_item: PaymentItem):
+def transaction_json(payment_item: PagarmeItemConfig):
     return {
         'object': 'transaction', 'status': 'authorized', 'refuse_reason': None, 'status_reason': 'antifraud',
         'acquirer_response_code': '0000', 'acquirer_name': 'pagarme', 'acquirer_id': '5cdec7071458b442125d940b',
-        'authorization_code': '727706', 'soft_descriptor': None, 'tid': 7656619, 'nsu': 7656619,
+        'authorization_code': '727706', 'soft_descriptor': None, 'tid': TRANSACTION_ID, 'nsu': TRANSACTION_ID,
         'date_created': '2020-01-21T01:10:13.015Z', 'date_updated': '2020-01-21T01:10:13.339Z',
         'amount': payment_item.price,
         'authorized_amount': payment_item.price, 'paid_amount': 0, 'refunded_amount': 0, 'installments': 1,
-        'id': 7656619, 'cost': 70,
+        'id': TRANSACTION_ID, 'cost': 70,
         'card_holder_name': 'Bar Baz', 'card_last_digits': '1111', 'card_first_digits': '411111', 'card_brand': 'visa',
         'card_pin_mode': None, 'card_magstripe_fallback': False, 'cvm_pin': False, 'postback_url': None,
         'payment_method': 'credit_card', 'capture_method': 'ecommerce', 'antifraud_score': None, 'boleto_url': None,
@@ -220,17 +229,19 @@ def transaction_json(payment_item: PaymentItem):
     }
 
 
+
+
 @pytest.fixture
-def captura_json(payment_item: PaymentItem):
+def captura_json(payment_item: PagarmeItemConfig):
     return {
         'object': 'transaction', 'status': 'paid', 'refuse_reason': None, 'status_reason': 'acquirer',
         'acquirer_response_code': '0000', 'acquirer_name': 'pagarme', 'acquirer_id': '5cdec7071458b442125d940b',
-        'authorization_code': '408324', 'soft_descriptor': None, 'tid': 7656690, 'nsu': 7656690,
+        'authorization_code': '408324', 'soft_descriptor': None, 'tid': TRANSACTION_ID, 'nsu': TRANSACTION_ID,
         'date_created': '2020-01-21T01:45:57.309Z', 'date_updated': '2020-01-21T01:47:27.105Z', 'amount': 8000,
         'authorized_amount': payment_item.price,
         'paid_amount': payment_item.price, 'refunded_amount': 0,
         'installments': 1,
-        'id': 7656690,
+        'id': TRANSACTION_ID,
         'cost': 100,
         'card_holder_name': 'agora captura', 'card_last_digits': '1111', 'card_first_digits': '411111',
         'card_brand': 'visa', 'card_pin_mode': None, 'card_magstripe_fallback': False, 'cvm_pin': False,

@@ -1,5 +1,6 @@
 from math import ceil
 
+from django.contrib.auth import get_user_model
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
@@ -10,7 +11,7 @@ BOLETO = 'boleto'
 CREDIT_CARD_AND_BOLETO = f'{CREDIT_CARD},{BOLETO}'
 
 
-class PaymentConfig(models.Model):
+class PagarmeFormConfig(models.Model):
     name = models.CharField(max_length=128)
     max_installments = models.IntegerField(default=12, validators=one_year_installments_validators)
     default_installment = models.IntegerField(default=1, validators=one_year_installments_validators)
@@ -46,24 +47,24 @@ class PaymentConfig(models.Model):
         return ceil(amount * (1 + self.interest_rate * installments / 100))
 
 
-class PaymentItem(models.Model):
+class PagarmeItemConfig(models.Model):
     name = models.CharField(max_length=128)
-    slug = models.SlugField(max_length=128)
+    slug = models.SlugField(db_index=True, max_length=128)
     price = models.PositiveIntegerField('Preço em Centavos')
     tangible = models.BooleanField('Produto físico?')
-    default_config = models.ForeignKey(PaymentConfig, on_delete=models.CASCADE, related_name='payment_items')
+    default_config = models.ForeignKey(PagarmeFormConfig, on_delete=models.CASCADE, related_name='payment_items')
 
     def __str__(self):
         return self.name
 
     class Meta:
-        verbose_name = 'Item de Pagamento'
-        verbose_name_plural = 'Itens de Pagamento'
+        verbose_name = 'Configuração de Item de Pagamento'
+        verbose_name_plural = 'Configurações Itens de Pagamento'
 
 
 class PaymentViolation(Exception):
     """
-    Exception for discrepancies on authorization values and respective PaymentConfig and Payment items
+    Exception for discrepancies on authorization values and respective PagarmeFormConfig and Payment items
     """
     pass
 
@@ -71,9 +72,11 @@ class PaymentViolation(Exception):
 class PagarmePaymentItem(models.Model):
     class Meta:
         unique_together = [['payment', 'item']]
+        verbose_name = 'Item de Pagamento'
+        verbose_name_plural = 'Items de Pagamento'
 
     payment = models.ForeignKey('PagarmePayment', on_delete=models.CASCADE)
-    item = models.ForeignKey('PaymentItem', on_delete=models.CASCADE)
+    item = models.ForeignKey('PagarmeItemConfig', on_delete=models.CASCADE)
 
 
 class PagarmePayment(models.Model):
@@ -84,6 +87,7 @@ class PagarmePayment(models.Model):
             (CREDIT_CARD, 'Cartão de Crédito'),
         ],
     )
+    transaction_id = models.CharField(db_index=True, max_length=50, unique=True)
     amount = models.PositiveIntegerField('Preço pago em Centavos')
     # https://docs.pagar.me/docs/
     # realizando-uma-transacao-de-cartao-de-credito#section-criando-um-cart%C3%A3o-para-one-click-buy
@@ -91,7 +95,19 @@ class PagarmePayment(models.Model):
     card_last_digits = models.CharField(max_length=4, null=True, db_index=False)
     boleto_url = models.TextField(null=True)
     installments = models.IntegerField('Parcelas', validators=[MinValueValidator(1)])
-    items = models.ManyToManyField(PaymentItem, through=PagarmePaymentItem, related_name='payments')
+    items = models.ManyToManyField(PagarmeItemConfig, through=PagarmePaymentItem, related_name='payments')
+    user = models.ForeignKey(get_user_model(), db_index=True, on_delete=models.DO_NOTHING, null=True)
+
+    class Meta:
+        ordering = ('-id',)
+        indexes = [
+            models.Index(fields=('user', '-id'), name='pargarme_payments_user')
+        ]
+        verbose_name = 'Pagamento'
+        verbose_name_plural = 'Pagamentos'
+
+    def __str__(self):
+        return self.transaction_id
 
     @classmethod
     def from_pagarme_transaction(cls, pagarme_json):
@@ -107,6 +123,7 @@ class PagarmePayment(models.Model):
             amount=pagarme_json['authorized_amount'],
             card_last_digits=pagarme_json['card_last_digits'],
             installments=pagarme_json['installments'],
+            transaction_id=str(pagarme_json['id'])
         )
         if payment_method == CREDIT_CARD:
             payment.card_id = pagarme_json['card']['id']
@@ -114,7 +131,7 @@ class PagarmePayment(models.Model):
         items_ = pagarme_json['items']
         payment_items = payment._validate_items(items_)
         payment_config, first_payment_item = next(payment_items)
-        all_payments_items=[first_payment_item]
+        all_payments_items = [first_payment_item]
         all_payments_items.extend(payment_item for _, payment_item in payment_items)
         item_prices_sum = sum(payment_item.price for payment_item in all_payments_items)
         pagarme_authorized_amount = payment.amount
@@ -143,14 +160,14 @@ class PagarmePayment(models.Model):
 
     def _validate_items(self, items_):
         """
-        Validate each Pagarme item against respective payment item, yielding PaymentConfig and PaymentItem
+        Validate each Pagarme item against respective payment item, yielding PagarmeFormConfig and PagarmeItemConfig
         :param items_: pagarme list of items (dicts)
-        :return: (PaymentConfig, PaymentItem) generator
+        :return: (PagarmeFormConfig, PagarmeItemConfig) generator
         """
         payment_config = None
         for item in items_:
             unit_price = item['unit_price']
-            payment_item = PaymentItem.objects.get(slug=item['id'])
+            payment_item = PagarmeItemConfig.objects.get(slug=item['id'])
             if payment_item.price > unit_price:
                 raise PaymentViolation(
                     f'Valor de item {unit_price} é menor que o esperado {payment_item.price}'
@@ -158,3 +175,39 @@ class PagarmePayment(models.Model):
             if payment_config is None:
                 payment_config = payment_item.default_config
             yield payment_config, payment_item
+
+
+PROCESSING = 'processing'
+AUTHORIZED = 'authorized'
+PAID = 'paid'
+REFUNDED = 'refunded'
+PENDING_REFUND = 'pending_refund'
+WAITING_PAYMENT = 'waiting_payment'
+REFUSED = 'refused'
+
+
+class PagarmeNotification(models.Model):
+    """
+    Class representing a payment event. Generaly from a notification coming from Pagarme
+    """
+    creation = models.DateTimeField(db_index=True, auto_now_add=True)
+    status = models.CharField(max_length=30,
+                              choices=[
+                                  (PROCESSING, 'Processando'),
+                                  (AUTHORIZED, 'Autorizado'),
+                                  (PAID, 'Pago'),
+                                  (REFUNDED, 'Estornado'),
+                                  (PENDING_REFUND, 'Estornando'),
+                                  (WAITING_PAYMENT, 'Aguardando Pgto'),
+                                  (REFUSED, 'Recusado'),
+                              ])
+    payment = models.ForeignKey(PagarmePayment, db_index=True, on_delete=models.CASCADE, related_name='notifications')
+
+    class Meta:
+        ordering = ('-creation',)
+        indexes = [
+            models.Index(fields=('-creation', 'payment'), name='notification_payment_creation')
+        ]
+        verbose_name = 'Notificação de Pagamento'
+        verbose_name_plural = 'Notificações de Pagamento'
+
