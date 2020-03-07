@@ -94,6 +94,7 @@ class PagarmePayment(models.Model):
     card_id = models.CharField(max_length=64, null=True, db_index=False)
     card_last_digits = models.CharField(max_length=4, null=True, db_index=False)
     boleto_url = models.TextField(null=True)
+    boleto_barcode = models.TextField(null=True)
     installments = models.IntegerField('Parcelas', validators=[MinValueValidator(1)])
     items = models.ManyToManyField(PagarmeItemConfig, through=PagarmePaymentItem, related_name='payments')
     user = models.ForeignKey(get_user_model(), db_index=True, on_delete=models.DO_NOTHING, null=True)
@@ -112,7 +113,7 @@ class PagarmePayment(models.Model):
     @classmethod
     def from_pagarme_transaction(cls, pagarme_json):
         """
-        Crate PagarmePayment from json pagarme transacition json, validating all data
+        Crate PagarmePayment from json pagarme transaction json, validating all data
         raise PaymentViolation in case of discrepancies
         :param pagarme_json:
         :return:
@@ -145,12 +146,17 @@ class PagarmePayment(models.Model):
                 f'{payment_config.max_installments}'
             )
         amount_after_interests = payment_config.calculate_amount(item_prices_sum, payment.installments)
-        if payment.amount < amount_after_interests:
+        if payment.amount < (amount_after_interests - 1):
             raise PaymentViolation(
                 f'Parcelamento em {payment.installments} vez(es) com juros {payment_config.interest_rate}% '
                 f'deveria dar {amount_after_interests} mas deu {payment.amount}'
             )
         return payment, all_payments_items
+
+    def extract_boleto_data(self, pagarme_json):
+        if self.payment_method == BOLETO:
+            self.boleto_barcode = pagarme_json['boleto_barcode']
+            self.boleto_url = pagarme_json['boleto_url']
 
     def to_dict(self):
         return {
@@ -210,4 +216,3 @@ class PagarmeNotification(models.Model):
         ]
         verbose_name = 'Notificação de Pagamento'
         verbose_name_plural = 'Notificações de Pagamento'
-
