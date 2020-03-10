@@ -10,5 +10,11 @@
 <body>
 <button id="pay-button">Abrir modal de pagamento</button>
 {% show_pagarme payment_item %}
+<script type="application/javascript">
+    $(document).ready(function(){
+        $('#pay-button').click();
+    });
+
+</script>
 </body>
 </html>
