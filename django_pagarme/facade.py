@@ -1,14 +1,19 @@
+from typing import Callable
+
 from django.db import transaction as django_transaction
 from pagarme import postback, transaction
 
+from django_pagarme.forms import ContactForm
 from django_pagarme.models import (
-    AUTHORIZED, PAID, PENDING_REFUND, PROCESSING, PagarmeNotification, PagarmePayment, PagarmeItemConfig, PaymentViolation,
-    REFUNDED, REFUSED, WAITING_PAYMENT,
+    AUTHORIZED, PAID, PENDING_REFUND, PROCESSING, PagarmeItemConfig, PagarmeNotification, PagarmePayment,
+    PaymentViolation, REFUNDED, REFUSED, WAITING_PAYMENT,
 )
 
 __all__ = ['get_payment_item',
            'capture',
            'PaymentViolation',
+           'InvalidContactData',
+           'ContactForm',
            'PROCESSING',
            'AUTHORIZED',
            'PAID',
@@ -82,3 +87,47 @@ def find_payment(transaction_id: str):
 
 class InvalidNotificationStatusTransition(Exception):
     pass
+
+
+class InvalidContactData(Exception):
+    """
+    Class to represent InvalidContactData during validation
+    Provides attribute contat_form containing invalid data and error msgs which can be used
+    to present them to user on templates or other interfaces
+    """
+
+    def __init__(self, contact_form: ContactForm, *args: object) -> None:
+        super().__init__(*args)
+        self.contact_form: ContactForm = contact_form
+
+
+_contact_info_listeners = []
+
+
+def add_contact_info_listener(callable: Callable):
+    _contact_info_listeners.append(callable)
+
+
+def validate_and_inform_contact_info(name, email, phone):
+    """
+    Validate contact info returning a dict containing normalized values.
+    Ex:
+        >>> validate_and_inform_contact_info('Foo Bar', 'foo@email.com', '12987654321')
+        {'name': 'Foo Bar', 'email':'foo@email.com', 'phone': '+12987654321'}
+
+    This dict will also be passed to callables configured on add_contact_info_listener.
+    Callables must declare parameters with names 'name', 'email' and 'phone'
+    raises InvalidContactData data in case data is invalid
+    :param name:
+    :param email:
+    :param phone:
+    :return: dict
+    """
+    dct = {'name': name, 'email': email, 'phone': phone}
+    form = ContactForm(dct)
+    if not form.is_valid():
+        raise InvalidContactData(contact_form=form)
+    data = dict(form.cleaned_data)
+    for callable in _contact_info_listeners:
+        callable(**data)
+    return data

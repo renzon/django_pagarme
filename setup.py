@@ -132,7 +132,8 @@ setup(
         "Framework :: Django",
     ],
     install_requires=[
-        'django >= 2.0'
+        'django >= 2.0',
+        'django-phonenumber-field[phonenumberslite]'
     ],
     zip_safe=False,
 )

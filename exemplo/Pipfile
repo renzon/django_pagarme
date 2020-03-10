@@ -10,6 +10,7 @@ responses = "*"
 codecov = "*"
 pytest-cov = "*"
 model-bakery = "*"
+pytest-mock = "*"
 
 [packages]
 django = "*"
