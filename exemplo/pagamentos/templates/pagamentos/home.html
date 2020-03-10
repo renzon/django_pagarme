@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+</head>
+<body>
+<form action="{% url 'home' %}" method="post">
+    {% csrf_token %}
+    {{ contact_form.as_p }}
+    <button type="submit">Comprar</button>
+</form>
+
+
+</body>
+</html>
