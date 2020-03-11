@@ -104,3 +104,45 @@ def resp_customer_on_query_string(client, payment_item, customer_query_string_da
 def test_customer_data_on_form(resp_customer_on_query_string, customer_query_string_data):
     for v in customer_query_string_data.values():
         assert_contains(resp_customer_on_query_string, v)
+
+
+@pytest.fixture
+def logged_user(django_user_model):
+    return baker.make(django_user_model)
+
+
+@pytest.fixture
+def resp_logged_user(client, payment_item, logged_user):
+    client.force_login(logged_user)
+    path = reverse('pagamentos:produto', kwargs={'slug': payment_item.slug})
+    return client.get(path)
+
+
+def test_user_data_on_form(resp_logged_user, logged_user):
+    data = {
+        'external_id': str(logged_user.id),
+        'name': logged_user.first_name,
+        'email': logged_user.email,
+    }
+    for k, v in data.items():
+        assert_contains(resp_logged_user, f"{k}: '{v}'")
+
+
+@pytest.fixture
+def resp_logged_user_and_customer_qs(client, payment_item, logged_user, customer_query_string_data):
+    client.force_login(logged_user)
+    path = reverse('pagamentos:produto', kwargs={'slug': payment_item.slug})
+    query_string = urlencode(customer_query_string_data)
+    return client.get(f'{path}?{query_string}')
+
+
+def test_customer_qs_precedes_logged_user(resp_logged_user_and_customer_qs, logged_user, customer_query_string_data):
+    data = {
+        'external_id': str(logged_user.id),
+    }
+    data.update(customer_query_string_data)
+    for k, v in data.items():
+        if k != 'phone':
+            assert_contains(resp_logged_user_and_customer_qs, f"{k}: '{v}'")
+        else:
+            assert_contains(resp_logged_user_and_customer_qs, v)

@@ -59,6 +59,7 @@
                     }
                 ],
                 customer: {
+                    external_id: '{{customer.external_id}}',
                     name: '{{customer.name}}',
                     email: '{{customer.email}}',
                     country: 'br',
@@ -89,7 +90,7 @@
             });
         });
         {% if open_modal %}
-        $button.click()
+            $button.click()
         {% endif %}
     });
 </script>
