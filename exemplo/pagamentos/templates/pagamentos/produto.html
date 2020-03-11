@@ -9,12 +9,7 @@
 </head>
 <body>
 <button id="pay-button">Abrir modal de pagamento</button>
-{% show_pagarme payment_item %}
-<script type="application/javascript">
-    $(document).ready(function(){
-        $('#pay-button').click();
-    });
+{% show_pagarme payment_item customer open_modal %}
 
-</script>
 </body>
 </html>
