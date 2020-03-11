@@ -3,7 +3,7 @@
 <script type="application/javascript">
     $(document).ready(function () {
         var csfr_token = document.querySelector('[name=csrfmiddlewaretoken]').value
-        var $button = $('button');
+        var $button = $('#pay-button');
 
         // Abrir o modal ao clicar no botão
         $button.click(function () {
@@ -59,14 +59,14 @@
                     }
                 ],
                 customer: {
-                    name: 'Renzo',
-                    email: 'renzo@python.pro.br',
+                    name: '{{customer.name}}',
+                    email: '{{customer.email}}',
                     country: 'br',
                     documents: {
                         type: 'cpf',
                         number: '12345678901'
                     },
-                    phone_numbers: ['+5512997511854']
+                    phone_numbers: ['{{customer.phone}}']
                 },
                 'billing': {
                     'object': 'billing',
@@ -88,5 +88,8 @@
 
             });
         });
+        {% if open_modal %}
+        $button.click()
+        {% endif %}
     });
 </script>

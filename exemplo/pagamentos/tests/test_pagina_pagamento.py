@@ -1,9 +1,10 @@
 import pytest
 from django.urls import reverse
+from django.utils.http import urlencode
 from model_bakery import baker
 
-from django_assertions import assert_contains
-from django_pagarme.models import PagarmeItemConfig, PagarmeFormConfig
+from django_assertions import assert_contains, assert_not_contains
+from django_pagarme.models import PagarmeFormConfig, PagarmeItemConfig
 
 
 @pytest.fixture
@@ -71,3 +72,35 @@ def test_tangible(resp, payment_item: PagarmeItemConfig):
 
 def test_payment_methods(resp, payment_config: PagarmeFormConfig):
     assert_contains(resp, f"paymentMethods: '{payment_config.payments_methods}'")
+
+
+def test_not_open_modal(resp):
+    assert_not_contains(resp, '$button.click()')
+
+
+@pytest.fixture
+def resp_open_modal(client, payment_item):
+    path = reverse('pagamentos:produto', kwargs={'slug': payment_item.slug})
+    query_string = urlencode({'open_modal': True})
+    return client.get(f'{path}?{query_string}')
+
+
+def test_modal_open(resp_open_modal):
+    assert_contains(resp_open_modal, '$button.click()')
+
+
+@pytest.fixture
+def customer_query_string_data():
+    return {'name': 'qs_name', 'email': 'qs@email.com', 'phone': '+5512999999999'}
+
+
+@pytest.fixture
+def resp_customer_on_query_string(client, payment_item, customer_query_string_data):
+    path = reverse('pagamentos:produto', kwargs={'slug': payment_item.slug})
+    query_string = urlencode(customer_query_string_data)
+    return client.get(f'{path}?{query_string}')
+
+
+def test_customer_data_on_form(resp_customer_on_query_string, customer_query_string_data):
+    for v in customer_query_string_data.values():
+        assert_contains(resp_customer_on_query_string, v)
