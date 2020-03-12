@@ -1,6 +1,12 @@
 # django_pagarme
 App Django para Automatizar Integração com Gateway de Pagamento Pagarme
 
+
+
+[![codecov](https://codecov.io/gh/renzon/django_pagarme/branch/master/graph/badge.svg)](https://codecov.io/gh/renzon/django_pagarme)
+
+
+
 ## Instalação
 
 Instale via pip
