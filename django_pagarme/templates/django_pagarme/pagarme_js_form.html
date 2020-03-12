@@ -62,10 +62,10 @@
                     external_id: '{{customer.external_id}}',
                     name: '{{customer.name}}',
                     email: '{{customer.email}}',
-                    country: 'br',
+                    country: {{customer.country}},
                     documents: {
-                        type: 'cpf',
-                        number: '12345678901'
+                        type: {{customer.document.type}},
+                        number: {{customer.document.number}}
                     },
                     phone_numbers: ['{{customer.phone}}']
                 },

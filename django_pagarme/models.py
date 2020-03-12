@@ -216,3 +216,84 @@ class PagarmeNotification(models.Model):
         ]
         verbose_name = 'Notificação de Pagamento'
         verbose_name_plural = 'Notificações de Pagamento'
+
+
+class UserPaymentProfile(models.Model):
+    user = models.OneToOneField(get_user_model(), primary_key=True, on_delete=models.CASCADE)
+    # customer data
+    customer_type = models.CharField(max_length=64, db_index=False)
+    costumer_country = models.CharField(max_length=64, db_index=False)
+    document_number = models.CharField(max_length=64, db_index=False)
+    document_type = models.CharField(max_length=64, db_index=False)
+    name = models.CharField(max_length=128, db_index=False)
+    email = models.CharField(max_length=64, db_index=False)
+    phone = models.CharField(max_length=11, db_index=False)
+
+    # Billing Address Data
+    street = models.CharField(max_length=128, db_index=False)
+    complementary = models.CharField(max_length=128, db_index=False)
+    street_number = models.CharField(max_length=128, db_index=False)
+    neighborhood = models.CharField(max_length=128, db_index=False)
+    city = models.CharField(max_length=128, db_index=False)
+    state = models.CharField(max_length=128, db_index=False)
+    zipcode = models.CharField(max_length=128, db_index=False)
+    address_country = models.CharField(max_length=128, db_index=False)
+
+    class Meta:
+        ordering = ('-user_id',)
+        verbose_name = 'Perfil de Pagamento '
+        verbose_name_plural = 'Perfis de Pagamento'
+
+    def to_customer_dict(self):
+        return {
+            'external_id': str(self.user_id),
+            'type': self.customer_type,
+            'country': self.costumer_country,
+            'documents': {
+                'number': self.document_number,
+                'type': self.document_type,
+            },
+            'name': self.name,
+            'email': self.email,
+            'phone': self.phone,
+        }
+
+    def to_billing_address_dict(self):
+        return {
+            'street': self.street,
+            'complementary': self.complementary,
+            'street_number': self.street_number,
+            'neighborhood': self.neighborhood,
+            'city': self.city,
+            'state': self.state,
+            'zipcode': self.zipcode,
+            'country': self.address_country,
+        }
+
+    @classmethod
+    def from_pagarme_dict(cls, django_user_id, pagarme_transaction):
+        """
+        Creates UserPaymentProfile from pagarme api json transaction
+        :param django_user_id: django user id
+        :param pagarme_transaction: pagarme api transaction dict
+        :return: UserPaymentProfile
+        """
+        customer = pagarme_transaction['customer']
+        address = pagarme_transaction['billing']['address']
+        return cls(
+            user_id=django_user_id,
+            customer_type=customer['type'],
+            costumer_country=customer['country'],
+            document_number=customer['document_number'],
+            document_type=customer['document_type'],
+            name=customer['name'],
+            email=customer['email'],
+            phone=customer['phone_numbers'][-1].replace('+', ''),
+            street=address['street'],
+            complementary=address['complementary'],
+            street_number=address['street_number'],
+            neighborhood=address['neighborhood'],
+            city=address['city'],
+            state=address['state'],
+            zipcode=address['zipcode'],
+            address_country=address['country'])

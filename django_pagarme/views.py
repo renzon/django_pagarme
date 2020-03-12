@@ -8,7 +8,7 @@ from django_pagarme.models import PaymentViolation
 def capture(request):
     token = request.POST['token']
     try:
-        payment = facade.capture(token)
+        payment = facade.capture(token, request.user.id)
     except facade.PaymentViolation as violation:
         return JsonResponse({'errors': str(violation)}, status=400)
     else:
