@@ -1,0 +1,2 @@
+fixes:
+  - "django_pagarme/django_pagarme/::django_pagarme/"
