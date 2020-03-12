@@ -81,7 +81,7 @@ def test_pagarme_payment_data(resp, transaction_json, payment_item: PagarmeItemC
 
 def test_pagarme_payment_initial_configuration(resp):
     payment = facade.find_payment(str(TRANSACTION_ID))
-    assert [n.status for n in payment.notifications.all()] == [facade.AUTHORIZED]
+    assert [n.status for n in payment.notifications.all()] == [facade.WAITING_PAYMENT]
 
 
 def _invalid_resp(tampered_item_price_json):

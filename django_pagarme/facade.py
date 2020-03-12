@@ -44,12 +44,6 @@ def capture(token: str, django_user_id=None) -> PagarmePayment:
     pagarme_transaction = transaction.find_by_id(token)
     payment, all_payments_items = PagarmePayment.from_pagarme_transaction(pagarme_transaction)
     captured_transaction = transaction.capture(token, {'amount': payment.amount})
-    payment.extract_boleto_data(captured_transaction)
-    with django_transaction.atomic():
-        payment.save()
-        payment.items.set(all_payments_items)
-        notification = PagarmeNotification(status=pagarme_transaction['status'], payment=payment)
-        notification.save()
     if django_user_id is None:
         try:
             user = _user_factory(captured_transaction)
@@ -61,6 +55,14 @@ def capture(token: str, django_user_id=None) -> PagarmePayment:
     if django_user_id is not None:
         profile = UserPaymentProfile.from_pagarme_dict(django_user_id, captured_transaction)
         profile.save()
+        payment.user_id = django_user_id
+
+    payment.extract_boleto_data(captured_transaction)
+    with django_transaction.atomic():
+        payment.save()
+        payment.items.set(all_payments_items)
+        notification = PagarmeNotification(status=captured_transaction['status'], payment=payment)
+        notification.save()
 
     return payment
 

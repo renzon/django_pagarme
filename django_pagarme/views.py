@@ -1,9 +1,25 @@
+from django.contrib.auth import get_user_model
 from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseNotAllowed, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
 from django_pagarme import facade
 from django_pagarme.facade import InvalidNotificationStatusTransition
 from django_pagarme.models import PaymentViolation
+
+
+def user_factory(pagarme_transaction):
+    User = get_user_model()
+    customer = pagarme_transaction['customer']
+    try:
+        return User.objects.get(email=customer['email'])
+    except User.DoesNotExist:
+        return User.objects.create(
+            first_name=customer['name'],
+            email=customer['email']
+        )
+
+
+facade.set_user_factory(user_factory)
 
 
 def capture(request):
