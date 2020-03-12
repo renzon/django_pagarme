@@ -19,8 +19,9 @@ class PagarmeFormConfigAdmin(admin.ModelAdmin):
 
 @admin.register(PagarmePayment)
 class PagarmePaymentAdmin(admin.ModelAdmin):
-    search_fields = ('user',)
+    search_fields = ('user__email',)
     list_display = (
+        'user',
         'transaction_id',
         'payment_method',
         'amount',
@@ -42,4 +43,4 @@ class PagarmeNotificationAdmin(admin.ModelAdmin):
 @admin.register(UserPaymentProfile)
 class UserPaymentProfileAdmin(admin.ModelAdmin):
     list_display = ('user', 'name', 'email', 'phone')
-    search_fields = ('user', 'email')
+    search_fields = ('email', 'user__email')
