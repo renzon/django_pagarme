@@ -1,3 +1,4 @@
 CHAVE_PAGARME_CRIPTOGRAFIA_PUBLICA=coloque_sua_chave_publica_aqui
 CHAVE_PAGARME_API_PRIVADA=coloque_sua_chave_privada+aqui
 PHONENUMBER_DEFAULT_REGION=BR
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/django_pagarme

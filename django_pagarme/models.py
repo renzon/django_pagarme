@@ -3,6 +3,7 @@ from math import ceil
 from django.contrib.auth import get_user_model
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from phonenumber_field.modelfields import PhoneNumberField
 
 one_year_installments_validators = [MaxValueValidator(12), MinValueValidator(1)]
 
@@ -227,7 +228,7 @@ class UserPaymentProfile(models.Model):
     document_type = models.CharField(max_length=64, db_index=False)
     name = models.CharField(max_length=128, db_index=False)
     email = models.CharField(max_length=64, db_index=False)
-    phone = models.CharField(max_length=11, db_index=False)
+    phone = PhoneNumberField(db_index=False)
 
     # Billing Address Data
     street = models.CharField(max_length=128, db_index=False)
