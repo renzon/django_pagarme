@@ -1,27 +1,34 @@
 from typing import Callable
 
+from django.contrib.auth import get_user_model
 from django.db import transaction as django_transaction
 from pagarme import postback, transaction
 
 from django_pagarme.forms import ContactForm
 from django_pagarme.models import (
     AUTHORIZED, PAID, PENDING_REFUND, PROCESSING, PagarmeItemConfig, PagarmeNotification, PagarmePayment,
-    PaymentViolation, REFUNDED, REFUSED, WAITING_PAYMENT,
+    PaymentViolation, REFUNDED, REFUSED, UserPaymentProfile, WAITING_PAYMENT,
 )
 
-__all__ = ['get_payment_item',
-           'capture',
-           'PaymentViolation',
-           'InvalidContactData',
-           'ContactForm',
-           'PROCESSING',
-           'AUTHORIZED',
-           'PAID',
-           'REFUNDED',
-           'PENDING_REFUND',
-           'WAITING_PAYMENT',
-           'REFUSED',
-           ]
+# It's here to be available on facade contract
+UserPaymentProfileDoesNotExist = UserPaymentProfile.DoesNotExist
+
+__all__ = [
+    'get_payment_item',
+    'capture',
+    'PaymentViolation',
+    'InvalidContactData',
+    'ContactForm',
+    'PROCESSING',
+    'AUTHORIZED',
+    'PAID',
+    'REFUNDED',
+    'PENDING_REFUND',
+    'WAITING_PAYMENT',
+    'REFUSED',
+    'UserPaymentProfileDoesNotExist',
+    'ImpossibleUserCreation'
+]
 
 
 def get_payment_item(slug: str) -> PagarmeItemConfig:
@@ -33,15 +40,27 @@ def get_payment_item(slug: str) -> PagarmeItemConfig:
     return PagarmeItemConfig.objects.filter(slug=slug).select_related('default_config').get()
 
 
-def capture(token: str) -> PagarmePayment:
+def capture(token: str, django_user_id=None) -> PagarmePayment:
     pagarme_transaction = transaction.find_by_id(token)
     payment, all_payments_items = PagarmePayment.from_pagarme_transaction(pagarme_transaction)
-    payment.extract_boleto_data(transaction.capture(token, {'amount': payment.amount}))
+    captured_transaction = transaction.capture(token, {'amount': payment.amount})
+    payment.extract_boleto_data(captured_transaction)
     with django_transaction.atomic():
         payment.save()
         payment.items.set(all_payments_items)
         notification = PagarmeNotification(status=pagarme_transaction['status'], payment=payment)
         notification.save()
+    if django_user_id is None:
+        try:
+            user = _user_factory(captured_transaction)
+        except ImpossibleUserCreation:
+            pass
+        else:
+            django_user_id = user.id
+
+    if django_user_id is not None:
+        profile = UserPaymentProfile.from_pagarme_dict(django_user_id, captured_transaction)
+        profile.save()
 
     return payment
 
@@ -131,3 +150,45 @@ def validate_and_inform_contact_info(name, email, phone):
     for callable in _contact_info_listeners:
         callable(**data)
     return data
+
+
+def get_user_payment_profile(django_user_or_id):
+    """
+    Get django user payment profile. Useful to avoid input of customer and billing address data on payment form when user
+    decides buying for a second time
+    :param django_user_or_id: Django user or his id
+    :return: UserPaymentDetails
+    """
+    User = get_user_model()
+    if isinstance(django_user_or_id, User):
+        user_id = django_user_or_id.id
+    else:
+        user_id = django_user_or_id
+    return UserPaymentProfile.objects.get(user_id=user_id)
+
+
+class ImpossibleUserCreation(Exception):
+    pass
+
+
+def _default_factory(pagarme_transaction):
+    """
+    Default user factory will never create a user
+    :param pagarme_transaction:
+    :return:
+    """
+    raise ImpossibleUserCreation()
+
+
+_user_factory = _default_factory
+
+
+def set_user_factory(factory: Callable):
+    """
+    Setup a factory can create a django user after payment capture. Callable receive pagarme transaction api dict
+    and can use it on User creation logic
+    Must return a Django user or raise ImpossibleUserCreation in case user can't be created.
+    :param factory: callable  receiving pagarme transacation as first parameter
+    """
+    global _user_factory
+    _user_factory = factory
