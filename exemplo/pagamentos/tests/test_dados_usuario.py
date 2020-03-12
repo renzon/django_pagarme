@@ -5,7 +5,7 @@ from django.urls import reverse
 from model_bakery import baker
 
 from django_pagarme import facade
-from django_pagarme.models import PagarmeFormConfig, PagarmeItemConfig, UserPaymentProfile
+from django_pagarme.models import PagarmeFormConfig, PagarmeItemConfig, PagarmePayment, UserPaymentProfile
 
 TOKEN = 'test_transaction_hfBR0ysHX0NewkUJeXIstI4MdZDb2U'
 
@@ -40,12 +40,21 @@ def pagarme_responses(transaction_json, captured_json):
 
 @pytest.fixture
 def resp_no_user(client, pagarme_responses):
-    return client.post(reverse('django_pagarme:capture'), {'token': TOKEN})
+    def factory(pagarme_transaction):
+        raise facade.ImpossibleUserCreation()
+
+    facade.set_user_factory(factory)
+    yield client.post(reverse('django_pagarme:capture'), {'token': TOKEN})
+    facade.set_user_factory(facade._default_factory)
 
 
 def test_no_user_payment_recording(resp_no_user, logged_user):
     with pytest.raises(facade.UserPaymentProfileDoesNotExist):
         facade.get_user_payment_profile(logged_user)
+
+
+def test_no_user_payment_relations(resp_no_user, logged_user):
+    assert not PagarmePayment.objects.filter(user=logged_user).exists()
 
 
 @pytest.fixture
@@ -66,6 +75,10 @@ def resp_with_user(client_with_user, pagarme_responses):
 
 def test_logged_user_payment_saved(resp_with_user, logged_user):
     assert facade.get_user_payment_profile(logged_user) is not None
+
+
+def test_logged_user_payment_relations(resp_with_user, logged_user):
+    assert PagarmePayment.objects.filter(user=logged_user).exists()
 
 
 def test_logged_user_payment_customer_data(resp_with_user, logged_user):
@@ -117,6 +130,7 @@ def resp_user_factory(client, pagarme_responses, logged_user, captured_json):
 def test_user_factory_profile_creation(resp_user_factory, logged_user):
     test_logged_user_payment_customer_data(resp_user_factory, logged_user)
     test_logged_user_payment_billing_address_data(resp_user_factory, logged_user)
+    test_logged_user_payment_relations(resp_user_factory, logged_user)
 
 
 @pytest.fixture

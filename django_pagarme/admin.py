@@ -36,7 +36,7 @@ class PagarmePaymentAdmin(admin.ModelAdmin):
 @admin.register(PagarmeNotification)
 class PagarmeNotificationAdmin(admin.ModelAdmin):
     list_display = ('payment', 'status', 'creation')
-    list_filter = ('payment',)
+    search_fields = ('payment__transaction_id__exact',)
     ordering = ('payment', '-creation')
 
 
