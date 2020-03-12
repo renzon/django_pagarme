@@ -17,6 +17,8 @@ django = "*"
 ed0a5ba = {editable = true,path = "./.."}
 python-decouple = "*"
 pagarme-python = "*"
+dj-database-url = "*"
+psycopg2-binary = "*"
 
 [requires]
 python_version = "3.8"

@@ -121,7 +121,7 @@ def test_user_factory_profile_creation(resp_user_factory, logged_user):
 
 @pytest.fixture
 def resp_after_first_purchase(client_with_user, pagarme_responses, logged_user):
-    baker.make(UserPaymentProfile, user_id=logged_user.id)
+    baker.make(UserPaymentProfile, user_id=logged_user.id, phone='5599888888888')
     return client_with_user.post(reverse('django_pagarme:capture'), {'token': TOKEN})
 
 
