@@ -103,7 +103,7 @@ class PagarmePayment(models.Model):
     class Meta:
         ordering = ('-id',)
         indexes = [
-            models.Index(fields=('user', '-id'), name='pargarme_payments_user')
+            models.Index(fields=('user', '-id'), name='pagarme_payments_user')
         ]
         verbose_name = 'Pagamento'
         verbose_name_plural = 'Pagamentos'

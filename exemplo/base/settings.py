@@ -31,7 +31,7 @@ CHAVE_PAGARME_CRIPTOGRAFIA_PUBLICA = config('CHAVE_PAGARME_CRIPTOGRAFIA_PUBLICA'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['88c83328.ngrok.io', 'localhost']
+ALLOWED_HOSTS = ['853c24a3.ngrok.io', 'localhost']
 
 # Application definition
 
