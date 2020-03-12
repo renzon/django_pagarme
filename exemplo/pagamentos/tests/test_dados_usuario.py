@@ -200,8 +200,6 @@ def transaction_json(payment_item: PagarmeItemConfig, logged_user):
             'external_id': str(logged_user.id),
             'type': CUSTOMER_TYPE,
             'country': COSTUMER_COUNTRY,
-            'document_number': DOCUMENT_NUMBER,
-            'document_type': DOCUMENT_TYPE,
             'name': logged_user.first_name,
             'email': logged_user.email,
             'phone_numbers': [PHONE],
@@ -213,8 +211,8 @@ def transaction_json(payment_item: PagarmeItemConfig, logged_user):
                 {
                     'object': 'document',
                     'id': 'doc_ck7huyv07072mmp6f59af8u8h',
-                    'type': 'cpf',
-                    'number': '04367331024'
+                    'type': DOCUMENT_TYPE,
+                    'number': DOCUMENT_NUMBER
                 }]
         },
         'billing': {
@@ -314,8 +312,6 @@ def captured_json(payment_item: PagarmeItemConfig, logged_user):
             'external_id': str(logged_user.id),
             'type': CUSTOMER_TYPE,
             'country': COSTUMER_COUNTRY,
-            'document_number': DOCUMENT_NUMBER,
-            'document_type': DOCUMENT_TYPE,
             'name': logged_user.first_name,
             'email': logged_user.email,
             'phone_numbers': [PHONE],
@@ -327,8 +323,8 @@ def captured_json(payment_item: PagarmeItemConfig, logged_user):
                 {
                     'object': 'document',
                     'id': 'doc_ck7huyv07072mmp6f59af8u8h',
-                    'type': 'cpf',
-                    'number': '29770166863'
+                    'type': DOCUMENT_TYPE,
+                    'number': DOCUMENT_NUMBER
                 }]
         },
         'billing': {

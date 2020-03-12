@@ -62,35 +62,17 @@
                     external_id: '{{customer.external_id}}',
                     name: '{{customer.name}}',
                     email: '{{customer.email}}',
-                    country: {{customer.country}},
+                    country: '{{customer.country}}',
                     documents: {
-                        type: {{customer.document.type}},
-                        number: {{customer.document.number}}
+                        type: '{{customer.document.type}}',
+                        number: '{{customer.document.number}}'
                     },
                     phone_numbers: ['{{customer.phone}}']
-                },
-                'billing': {
-                    'object': 'billing',
-                    'id': 1168861,
-                    'name': 'Foo',
-                    'address': {
-                        'object': 'address',
-                        'street': 'Rua Buenos Aires',
-                        'complementary': 'Sem complemento',
-                        'street_number': '7',
-                        'neighborhood': 'Cidade Vista Verde',
-                        'city': 'São José dos Campos',
-                        'state': 'SP',
-                        'zipcode': '12223730',
-                        'country': 'br',
-                        'id': 2641028
-                    }
                 }
-
             });
         });
         {% if open_modal %}
-            $button.click()
+            $button.click();
         {% endif %}
     });
 </script>

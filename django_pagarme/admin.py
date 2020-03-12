@@ -1,6 +1,8 @@
 from django.contrib import admin
 
-from django_pagarme.models import PagarmeNotification, PagarmePayment, PagarmeFormConfig, PagarmeItemConfig
+from django_pagarme.models import (
+    PagarmeFormConfig, PagarmeItemConfig, PagarmeNotification, PagarmePayment, UserPaymentProfile,
+)
 
 
 @admin.register(PagarmeItemConfig)
@@ -17,6 +19,7 @@ class PagarmeFormConfigAdmin(admin.ModelAdmin):
 
 @admin.register(PagarmePayment)
 class PagarmePaymentAdmin(admin.ModelAdmin):
+    search_fields = ('user',)
     list_display = (
         'transaction_id',
         'payment_method',
@@ -34,3 +37,9 @@ class PagarmeNotificationAdmin(admin.ModelAdmin):
     list_display = ('payment', 'status', 'creation')
     list_filter = ('payment',)
     ordering = ('payment', '-creation')
+
+
+@admin.register(UserPaymentProfile)
+class UserPaymentProfileAdmin(admin.ModelAdmin):
+    list_display = ('user', 'name', 'email', 'phone')
+    search_fields = ('user', 'email')

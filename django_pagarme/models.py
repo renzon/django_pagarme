@@ -279,13 +279,14 @@ class UserPaymentProfile(models.Model):
         :return: UserPaymentProfile
         """
         customer = pagarme_transaction['customer']
+        document = customer['documents'][-1]
         address = pagarme_transaction['billing']['address']
         return cls(
             user_id=django_user_id,
             customer_type=customer['type'],
             costumer_country=customer['country'],
-            document_number=customer['document_number'],
-            document_type=customer['document_type'],
+            document_number=document['number'],
+            document_type=document['type'],
             name=customer['name'],
             email=customer['email'],
             phone=customer['phone_numbers'][-1].replace('+', ''),

@@ -2,6 +2,7 @@ from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseNotAll
 from django.views.decorators.csrf import csrf_exempt
 
 from django_pagarme import facade
+from django_pagarme.facade import InvalidNotificationStatusTransition
 from django_pagarme.models import PaymentViolation
 
 
@@ -28,5 +29,7 @@ def notification(request):
         facade.handle_notification(transaction_id, current_status, raw_body, expected_signature)
     except PaymentViolation:
         return HttpResponseBadRequest()
+    except InvalidNotificationStatusTransition:
+        pass
 
     return HttpResponse()
