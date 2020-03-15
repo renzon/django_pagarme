@@ -137,12 +137,12 @@ def add_contact_info_listener(callable: Callable):
     _contact_info_listeners.append(callable)
 
 
-def validate_and_inform_contact_info(name, email, phone):
+def validate_and_inform_contact_info(name, email, phone, payment_item_slug):
     """
     Validate contact info returning a dict containing normalized values.
     Ex:
-        >>> validate_and_inform_contact_info('Foo Bar', 'foo@email.com', '12987654321')
-        {'name': 'Foo Bar', 'email':'foo@email.com', 'phone': '+12987654321'}
+        >>> validate_and_inform_contact_info('Foo Bar', 'foo@email.com', '12987654321', 'pytools')
+        {'name': 'Foo Bar', 'email':'foo@email.com', 'phone': '+12987654321', 'payment_item_slug': 'pytools'}
 
     This dict will also be passed to callables configured on add_contact_info_listener.
     Callables must declare parameters with names 'name', 'email' and 'phone'
@@ -150,6 +150,7 @@ def validate_and_inform_contact_info(name, email, phone):
     :param name:
     :param email:
     :param phone:
+    :param payment_item_slug: item slug
     :return: dict
     """
     dct = {'name': name, 'email': email, 'phone': phone}
@@ -158,7 +159,7 @@ def validate_and_inform_contact_info(name, email, phone):
         raise InvalidContactData(contact_form=form)
     data = dict(form.cleaned_data)
     for callable in _contact_info_listeners:
-        callable(**data)
+        callable(payment_item_slug=payment_item_slug, **data)
     return data
 
 

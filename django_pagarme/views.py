@@ -18,6 +18,7 @@ def contact_info(request, slug):
         return render(request, 'django_pagarme/contact_form.html', ctx)
 
     dct = {key: request.POST[key] for key in 'name phone email'.split()}
+    dct['payment_item_slug'] = slug
     try:
         dct = facade.validate_and_inform_contact_info(**dct)
     except facade.InvalidContactData as e:
