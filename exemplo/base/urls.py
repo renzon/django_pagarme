@@ -21,6 +21,5 @@ from base import views
 urlpatterns = [
     path('', views.home, name='home'),
     path('admin/', admin.site.urls),
-    path('checkout/', include('pagamentos.urls')),
-    path('django_pagarme/', include('django_pagarme.urls')),
+    path('checkout/', include('django_pagarme.urls')),
 ]

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Compra link</title>
+</head>
+<body>
+{% for config in payment_items %}
+    <a href="{{config.get_absolute_url}}">{{config.name}}</a>
+{% endfor %}
+</body>
+</html>

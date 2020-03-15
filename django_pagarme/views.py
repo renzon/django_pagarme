@@ -1,5 +1,9 @@
-from django.contrib.auth import get_user_model
+from collections import ChainMap
+
 from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseNotAllowed, JsonResponse
+from django.shortcuts import redirect, render
+from django.urls import reverse
+from django.utils.http import urlencode
 from django.views.decorators.csrf import csrf_exempt
 
 from django_pagarme import facade
@@ -7,19 +11,24 @@ from django_pagarme.facade import InvalidNotificationStatusTransition
 from django_pagarme.models import PaymentViolation
 
 
-def user_factory(pagarme_transaction):
-    User = get_user_model()
-    customer = pagarme_transaction['customer']
+def contact_info(request, slug):
+    if request.method == 'GET':
+        form = facade.ContactForm()
+        ctx = {'contact_form': form, 'slug': slug}
+        return render(request, 'django_pagarme/contact_form.html', ctx)
+
+    dct = {key: request.POST[key] for key in 'name phone email'.split()}
     try:
-        return User.objects.get(email=customer['email'])
-    except User.DoesNotExist:
-        return User.objects.create(
-            first_name=customer['name'],
-            email=customer['email']
-        )
-
-
-facade.set_user_factory(user_factory)
+        dct = facade.validate_and_inform_contact_info(**dct)
+    except facade.InvalidContactData as e:
+        ctx = {'contact_form': e.contact_form, 'slug': slug}
+        resp = render(request, 'django_pagarme/contact_form_errors.html', ctx, status=400)
+        return resp
+    else:
+        path = reverse('django_pagarme:pagarme', kwargs={'slug': slug})
+        dct['open_modal'] = 'true'
+        query_string = urlencode(dct)
+        return redirect(f'{path}?{query_string}')
 
 
 def capture(request):
@@ -49,3 +58,22 @@ def notification(request):
         pass
 
     return HttpResponse()
+
+
+def pagarme(request, slug: str):
+    open_modal = request.GET.get('open_modal', '').lower() == 'true'
+    customer_qs_data = {k: request.GET.get(k, '') for k in ['name', 'email', 'phone']}
+    customer_qs_data = {k: v for k, v in customer_qs_data.items() if v}
+    user = request.user
+    if user.is_authenticated:
+        user_data = {'external_id': user.id, 'name': user.first_name, 'email': user.email}
+        customer = ChainMap(customer_qs_data, user_data)
+    else:
+        customer = customer_qs_data
+    ctx = {
+        'payment_item': facade.get_payment_item(slug),
+        'open_modal': open_modal,
+        'customer': customer,
+        'slug': slug
+    }
+    return render(request, 'django_pagarme/pagarme.html', ctx)
