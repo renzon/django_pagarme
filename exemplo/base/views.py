@@ -20,7 +20,12 @@ def user_factory(pagarme_transaction):
         )
 
 
+def print_contact_info(*args, **kwargs):
+    print('Contact Data:', args, kwargs)
+
+
 facade.set_user_factory(user_factory)
+facade.add_contact_info_listener(print_contact_info)
 
 
 def home(request):
