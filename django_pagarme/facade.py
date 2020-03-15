@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, List
 
 from django.contrib.auth import get_user_model
 from django.db import transaction as django_transaction
@@ -38,6 +38,14 @@ def get_payment_item(slug: str) -> PagarmeItemConfig:
     :return: PagarmeItemConfig
     """
     return PagarmeItemConfig.objects.filter(slug=slug).select_related('default_config').get()
+
+
+def list_payment_item_configs() -> List[PagarmeItemConfig]:
+    """
+    List PagarmeItemConfig ordered by slug
+    :return: list of PagarmeItemConfig
+    """
+    return list(PagarmeItemConfig.objects.filter().all())
 
 
 def capture(token: str, django_user_id=None) -> PagarmePayment:

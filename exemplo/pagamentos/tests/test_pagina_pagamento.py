@@ -19,7 +19,7 @@ def payment_item(payment_config):
 
 @pytest.fixture
 def resp(client, payment_item):
-    return client.get(reverse('pagamentos:produto', kwargs={'slug': payment_item.slug}))
+    return client.get(reverse('django_pagarme:pagarme', kwargs={'slug': payment_item.slug}))
 
 
 def test_status_code(payment_item: PagarmeItemConfig, resp):
@@ -80,7 +80,7 @@ def test_not_open_modal(resp):
 
 @pytest.fixture
 def resp_open_modal(client, payment_item):
-    path = reverse('pagamentos:produto', kwargs={'slug': payment_item.slug})
+    path = reverse('django_pagarme:pagarme', kwargs={'slug': payment_item.slug})
     query_string = urlencode({'open_modal': True})
     return client.get(f'{path}?{query_string}')
 
@@ -96,7 +96,7 @@ def customer_query_string_data():
 
 @pytest.fixture
 def resp_customer_on_query_string(client, payment_item, customer_query_string_data):
-    path = reverse('pagamentos:produto', kwargs={'slug': payment_item.slug})
+    path = reverse('django_pagarme:pagarme', kwargs={'slug': payment_item.slug})
     query_string = urlencode(customer_query_string_data)
     return client.get(f'{path}?{query_string}')
 
@@ -114,7 +114,7 @@ def logged_user(django_user_model):
 @pytest.fixture
 def resp_logged_user(client, payment_item, logged_user):
     client.force_login(logged_user)
-    path = reverse('pagamentos:produto', kwargs={'slug': payment_item.slug})
+    path = reverse('django_pagarme:pagarme', kwargs={'slug': payment_item.slug})
     return client.get(path)
 
 
@@ -131,7 +131,7 @@ def test_user_data_on_form(resp_logged_user, logged_user):
 @pytest.fixture
 def resp_logged_user_and_customer_qs(client, payment_item, logged_user, customer_query_string_data):
     client.force_login(logged_user)
-    path = reverse('pagamentos:produto', kwargs={'slug': payment_item.slug})
+    path = reverse('django_pagarme:pagarme', kwargs={'slug': payment_item.slug})
     query_string = urlencode(customer_query_string_data)
     return client.get(f'{path}?{query_string}')
 

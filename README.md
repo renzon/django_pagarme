@@ -55,10 +55,10 @@ Segue exemplo:
 
 ## Definição de Produtos
 
-Use o admin para definir demais condições do seu produto:
-Nome do produto
+Use o admin para definir demais condições do seu pagarme:
+Nome do pagarme
 Preço em Centavos
-Se o produto é físico ou não
+Se o pagarme é físico ou não
 Opção padrão de pagamento
 
 Segue exemplo de um curso chamado Pytools custando R$ 99.99
@@ -67,14 +67,14 @@ Segue exemplo de um curso chamado Pytools custando R$ 99.99
 
 ## Mostrando um pagamento:
 
-Crie uma view buscando pelo produto a ser vendido:
+Crie uma view buscando pelo pagarme a ser vendido:
 
 ```
 from django_pagarme import facade
 
-def produto(request, slug: str):
+def pagarme(request, slug: str):
     ctx = {'sellable': facade.get_sellable(slug)}
-    return render(request, 'pagamentos/produto.html', ctx)
+    return render(request, 'django_pagarme/pagarme.html', ctx)
 ```
 
 No seu template, carregue as templates tags do django pagarme e mostre seu formulário:
@@ -83,7 +83,7 @@ No seu template, carregue as templates tags do django pagarme e mostre seu formu
 <html>
 <head>
     <!-- SCRIPT PAGAR.ME -->
-    <script src="//assets.pagar.me/checkout/1.1.0/checkout.js"></script>
+    <script src="//assets.pagar.me/pagarme/1.1.0/pagarme.js"></script>
     <script src="//code.jquery.com/jquery-3.4.1.js"
             integrity="sha256-WpOohJOqMqqyKL9FccASB9O0KwACQJpFTUBLTYOVvVU="
             crossorigin="anonymous"></script>

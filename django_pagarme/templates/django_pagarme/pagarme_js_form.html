@@ -58,6 +58,7 @@
                         tangible: '{{payment_item.tangible|lower}}'
                     }
                 ],
+            {% if customer %}
                 customer: {
                     external_id: '{{customer.external_id}}',
                     name: '{{customer.name}}',
@@ -69,6 +70,7 @@
                     },
                     phone_numbers: ['{{customer.phone}}']
                 }
+            {% endif %}
             });
         });
         {% if open_modal %}

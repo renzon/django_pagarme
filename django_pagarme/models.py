@@ -3,6 +3,7 @@ from math import ceil
 from django.contrib.auth import get_user_model
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.urls import reverse
 from phonenumber_field.modelfields import PhoneNumberField
 
 one_year_installments_validators = [MaxValueValidator(12), MinValueValidator(1)]
@@ -57,6 +58,9 @@ class PagarmeItemConfig(models.Model):
 
     def __str__(self):
         return self.name
+
+    def get_absolute_url(self):
+        return reverse('django_pagarme:contact_info', kwargs={'slug': self.slug})
 
     class Meta:
         verbose_name = 'Configuração de Item de Pagamento'
