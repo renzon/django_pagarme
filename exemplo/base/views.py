@@ -24,8 +24,13 @@ def print_contact_info(*args, **kwargs):
     print('Contact Data:', args, kwargs)
 
 
+def print_payment_id(payment_id):
+    print(payment_id)
+
+
 facade.set_user_factory(user_factory)
 facade.add_contact_info_listener(print_contact_info)
+facade.add_payment_status_changed(print_payment_id)
 
 
 def home(request):
