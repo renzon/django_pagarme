@@ -51,7 +51,7 @@ def payment_status_listener(mocker):
 def resp(client, pagarme_payment, payment_item, payment_status_listener):
     return client.generic(
         'POST',
-        reverse('django_pagarme:notification', kwargs={'slug':payment_item.slug}),
+        reverse('django_pagarme:notification', kwargs={'slug': payment_item.slug}),
         RAW_POST.encode('utf8'),
         content_type='application/x-www-form-urlencoded',
         HTTP_X_HUB_SIGNATURE=TRANSACTION_SIGNATURE
@@ -76,7 +76,7 @@ def resp_tampered(client, pagarme_payment, payment_item):
     tampered_post = RAW_POST + 'r'
     return client.generic(
         'POST',
-        reverse('django_pagarme:notification', kwargs={'slug':payment_item.slug}),
+        reverse('django_pagarme:notification', kwargs={'slug': payment_item.slug}),
         tampered_post.encode('utf8'),
         content_type='application/x-www-form-urlencoded',
         HTTP_X_HUB_SIGNATURE=TRANSACTION_SIGNATURE
