@@ -50,7 +50,8 @@ def capture(request, token):
 
 
 def thanks(request, slug):
-    pass
+    ctx = {'payment_item_config': facade.find_payment_item_config(slug)}
+    return render(request, 'django_pagarme/thanks.html', ctx)
 
 
 @csrf_exempt
