@@ -6,8 +6,8 @@ from pagarme import postback, transaction
 
 from django_pagarme.forms import ContactForm
 from django_pagarme.models import (
-    AUTHORIZED, PAID, PENDING_REFUND, PROCESSING, PagarmeItemConfig, PagarmeNotification, PagarmePayment,
-    PaymentViolation, REFUNDED, REFUSED, UserPaymentProfile, WAITING_PAYMENT,BOLETO, CREDIT_CARD
+    AUTHORIZED, BOLETO, CREDIT_CARD, PAID, PENDING_REFUND, PROCESSING, PagarmeItemConfig, PagarmeNotification,
+    PagarmePayment, PaymentViolation, REFUNDED, REFUSED, UserPaymentProfile, WAITING_PAYMENT,
 )
 
 # It's here to be available on facade contract
@@ -209,3 +209,7 @@ def set_user_factory(factory: Callable):
     """
     global _user_factory
     _user_factory = factory
+
+
+def find_payment_item_config(slug: str) -> PagarmeItemConfig:
+    return PagarmeItemConfig.objects.get(slug=slug)
