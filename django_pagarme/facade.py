@@ -77,7 +77,8 @@ def capture(token: str, django_user_id=None) -> PagarmePayment:
         payment.items.set(all_payments_items)
         notification = PagarmeNotification(status=captured_transaction['status'], payment=payment)
         notification.save()
-
+    for listener in _payment_status_changed_listeners:
+        listener(payment_id=payment.id)
     return payment
 
 
@@ -112,7 +113,10 @@ def _save_notification(payment_id, current_status):
     last_status = '' if last_notification is None else last_notification.status
     if current_status in _impossible_states.get(last_status, {}):
         raise InvalidNotificationStatusTransition(f'Invalid transition {last_status} -> {current_status}')
-    return PagarmeNotification(status=current_status, payment_id=payment_id).save()
+    notification = PagarmeNotification(status=current_status, payment_id=payment_id).save()
+    for listener in _payment_status_changed_listeners:
+        listener(payment_id=payment_id)
+    return notification
 
 
 def find_payment(transaction_id: str):
@@ -151,7 +155,7 @@ def validate_and_inform_contact_info(name, email, phone, payment_item_slug):
         {'name': 'Foo Bar', 'email':'foo@email.com', 'phone': '+12987654321', 'payment_item_slug': 'pytools'}
 
     This dict will also be passed to callables configured on add_contact_info_listener.
-    Callables must declare parameters with names 'name', 'email' and 'phone'
+    Callables must declare parameters with names 'name', 'email', 'phone' and 'payment_item_slug'
     raises InvalidContactData data in case data is invalid
     :param name:
     :param email:
@@ -164,8 +168,8 @@ def validate_and_inform_contact_info(name, email, phone, payment_item_slug):
     if not form.is_valid():
         raise InvalidContactData(contact_form=form)
     data = dict(form.cleaned_data)
-    for callable in _contact_info_listeners:
-        callable(payment_item_slug=payment_item_slug, **data)
+    for listener in _contact_info_listeners:
+        listener(payment_item_slug=payment_item_slug, **data)
     return data
 
 
@@ -213,3 +217,16 @@ def set_user_factory(factory: Callable):
 
 def find_payment_item_config(slug: str) -> PagarmeItemConfig:
     return PagarmeItemConfig.objects.get(slug=slug)
+
+
+_payment_status_changed_listeners = []
+
+
+def add_payment_status_changed(listener: Callable):
+    """
+    Listener added with this function will be called receiving PagarmePayment as parameter
+    :param listener:
+    :return: nothing
+    """
+
+    return _payment_status_changed_listeners.append(listener)

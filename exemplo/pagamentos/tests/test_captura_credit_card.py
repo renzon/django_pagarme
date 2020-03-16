@@ -42,7 +42,15 @@ def pagarme_responses(transaction_json, captura_json):
 
 
 @pytest.fixture
-def resp(client, pagarme_responses):
+def payment_status_listener(mocker):
+    mock = mocker.Mock()
+    facade.add_payment_status_changed(mock)
+    yield mock
+    facade._payment_status_changed_listeners.pop()
+
+
+@pytest.fixture
+def resp(client, pagarme_responses, payment_status_listener):
     return client.get(reverse('django_pagarme:capture', kwargs={'token': TOKEN}))
 
 
@@ -77,13 +85,18 @@ def test_pagarme_payment_initial_configuration(resp):
     assert [n.status for n in payment.notifications.all()] == [facade.PAID]
 
 
+def test_status_listener_executed(resp, payment_status_listener):
+    payment = facade.find_payment(str(TRANSACTION_ID))
+    payment_status_listener.assert_called_once_with(payment_id=payment.id)
+
+
+# Testing tampered item price
+
 def _invalid_resp(tampered_item_price_json):
     with responses.RequestsMock() as rsps:
         rsps.add(responses.GET, f'https://api.pagar.me/1/transactions/{TOKEN}', json=tampered_item_price_json)
         yield rsps
 
-
-# Testing tampered item price
 
 @pytest.fixture
 def tampered_item_price_json(transaction_json, payment_item: PagarmeItemConfig):
@@ -200,7 +213,7 @@ def test_status_code_invalid_interest_rate(resp_tampered_interest_rate):
 
 
 def test_interest_error_msg(resp_tampered_interest_rate, tampered_installments_json,
-                            payment_config: PagarmeFormConfig, logger_exception_mock, payment_item:PagarmeItemConfig):
+                            payment_config: PagarmeFormConfig, logger_exception_mock, payment_item: PagarmeItemConfig):
     installments = tampered_installments_json['installments']
     logger_exception_mock.assert_called_once_with(
         f'Parcelamento em 12 vez(es) com juros 1.66% deveria dar '

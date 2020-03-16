@@ -40,7 +40,15 @@ def pagarme_payment(payment_item):
 
 
 @pytest.fixture
-def resp(client, pagarme_payment, payment_item):
+def payment_status_listener(mocker):
+    mock = mocker.Mock()
+    facade.add_payment_status_changed(mock)
+    yield mock
+    facade._payment_status_changed_listeners.pop()
+
+
+@pytest.fixture
+def resp(client, pagarme_payment, payment_item, payment_status_listener):
     return client.generic(
         'POST',
         reverse('django_pagarme:notification', kwargs={'slug':payment_item.slug}),
@@ -56,6 +64,11 @@ def test_status_code(resp):
 
 def test_notification_exists(resp):
     assert facade.find_payment(TRANSACTION_ID).notifications.exists()
+
+
+def test_status_listener_executed(resp, payment_status_listener):
+    payment = facade.find_payment(str(TRANSACTION_ID))
+    payment_status_listener.assert_called_once_with(payment_id=payment.id)
 
 
 @pytest.fixture
