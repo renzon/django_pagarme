@@ -86,7 +86,7 @@ def resp_open_modal(client, payment_item):
 
 
 def test_modal_open(resp_open_modal):
-    assert_contains(resp_open_modal, '$button.click()')
+    assert_contains(resp_open_modal, 'setTimeout(initiateCheckout, 1000);')
 
 
 @pytest.fixture

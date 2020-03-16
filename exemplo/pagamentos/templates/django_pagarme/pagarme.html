@@ -3,12 +3,9 @@
 <head>
     <!-- SCRIPT PAGAR.ME -->
     <script src="//assets.pagar.me/checkout/1.1.0/checkout.js"></script>
-    <script src="//code.jquery.com/jquery-3.4.1.js"
-            integrity="sha256-WpOohJOqMqqyKL9FccASB9O0KwACQJpFTUBLTYOVvVU="
-            crossorigin="anonymous"></script>
 </head>
 <body>
-<button id="pay-button">Abrir modal de pagamento</button>
+<button class="pay-button">Abrir modal de pagamento</button>
 {% show_pagarme payment_item customer open_modal %}
 
 </body>

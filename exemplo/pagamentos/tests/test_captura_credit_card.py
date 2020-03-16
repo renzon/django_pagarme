@@ -4,7 +4,7 @@ from django.urls import reverse
 from model_bakery import baker
 
 from django_pagarme import facade
-from django_pagarme.models import PagarmePayment, PagarmeFormConfig, PagarmeItemConfig
+from django_pagarme.models import PagarmeFormConfig, PagarmeItemConfig, PagarmePayment
 
 TOKEN = 'test_transaction_aJx9ibUmRqYcQrrUaNtQ3arTO4tF1z'
 
@@ -43,18 +43,12 @@ def pagarme_responses(transaction_json, captura_json):
 
 @pytest.fixture
 def resp(client, pagarme_responses):
-    return client.post(reverse('django_pagarme:capture'), {'token': TOKEN})
+    return client.get(reverse('django_pagarme:capture', kwargs={'token': TOKEN}))
 
 
-def test_status_code(resp):
-    assert resp.status_code == 200
-
-
-def test_success_msg(resp, payment_item: PagarmeItemConfig):
-    assert resp.json() == {
-        'payment_method': 'credit_card',
-        'amount': payment_item.price
-    }
+def test_status_code(resp, payment_item):
+    assert resp.status_code == 302
+    assert resp.url == reverse('django_pagarme:thanks', kwargs={'slug': payment_item.slug})
 
 
 def test_pagarme_payment_creation(resp):
@@ -103,19 +97,24 @@ def pargarme_tampered_item_price_resps(tampered_item_price_json):
 
 
 @pytest.fixture
-def resp_tampered_item_price(client, pargarme_tampered_item_price_resps):
-    return client.post(reverse('django_pagarme:capture'), {'token': TOKEN})
+def resp_tampered_item_price(client, pargarme_tampered_item_price_resps, logger_exception_mock):
+    return client.get(reverse('django_pagarme:capture', kwargs={'token': TOKEN}))
 
 
 def test_status_code_invalid_item_price(resp_tampered_item_price):
     assert resp_tampered_item_price.status_code == 400
 
 
-def test_item_price_error_msg(resp_tampered_item_price, tampered_item_price_json, payment_item):
+@pytest.fixture
+def logger_exception_mock(mocker):
+    return mocker.patch('django_pagarme.views.logger.exception')
+
+
+def test_item_price_error_msg(resp_tampered_item_price, tampered_item_price_json, payment_item, logger_exception_mock):
     unit_price = tampered_item_price_json['items'][0]['unit_price']
-    assert resp_tampered_item_price.json() == {
-        'errors': f'Valor de item {unit_price} é menor que o esperado {payment_item.price}'
-    }
+    logger_exception_mock.assert_called_once_with(
+        f'Valor de item {unit_price} é menor que o esperado {payment_item.price}'
+    )
 
 
 # Test tampered total amount price:
@@ -132,19 +131,20 @@ def pargarme_tampered_authorized_amount_resps(tampered_authorized_amount_json):
 
 
 @pytest.fixture
-def resp_tampered_authorized_amount(client, pargarme_tampered_authorized_amount_resps):
-    return client.post(reverse('django_pagarme:capture'), {'token': TOKEN})
+def resp_tampered_authorized_amount(client, pargarme_tampered_authorized_amount_resps, logger_exception_mock):
+    return client.get(reverse('django_pagarme:capture', kwargs={'token': TOKEN}))
 
 
 def test_status_code_invalid_authorized_amount(resp_tampered_authorized_amount):
     assert resp_tampered_authorized_amount.status_code == 400
 
 
-def test_authorized_amount_error_msg(resp_tampered_authorized_amount, tampered_authorized_amount_json, payment_item):
+def test_authorized_amount_error_msg(resp_tampered_authorized_amount, tampered_authorized_amount_json, payment_item,
+                                     logger_exception_mock):
     authorized_amount = tampered_authorized_amount_json['authorized_amount']
-    assert resp_tampered_authorized_amount.json() == {
-        'errors': f'Valor autorizado {authorized_amount} é menor que o esperado {payment_item.price}'
-    }
+    logger_exception_mock.assert_called_once_with(
+        f'Valor autorizado {authorized_amount} é menor que o esperado {payment_item.price}'
+    )
 
 
 # Test tampered installments:
@@ -161,25 +161,26 @@ def pargarme_tampered_installments_resps(tampered_installments_json):
 
 
 @pytest.fixture
-def resp_tampered_installments(client, pargarme_tampered_installments_resps):
-    return client.post(reverse('django_pagarme:capture'), {'token': TOKEN})
+def resp_tampered_installments(client, pargarme_tampered_installments_resps, logger_exception_mock):
+    return client.get(reverse('django_pagarme:capture', kwargs={'token': TOKEN}))
 
 
 def test_status_code_invalid_installments(resp_tampered_installments):
     assert resp_tampered_installments.status_code == 400
 
 
-def test_installments_error_msg(resp_tampered_installments, tampered_installments_json, payment_config: PagarmeFormConfig):
+def test_installments_error_msg(resp_tampered_installments, tampered_installments_json,
+                                payment_config: PagarmeFormConfig, logger_exception_mock):
     installments = tampered_installments_json['installments']
-    assert resp_tampered_installments.json() == {
-        'errors': f'Parcelamento em {installments} vez(es) é maior que o máximo {payment_config.max_installments}'
-    }
+    logger_exception_mock.assert_called_once_with(
+        f'Parcelamento em {installments} vez(es) é maior que o máximo {payment_config.max_installments}'
+    )
 
 
 # Test tampered interest)rate:
 
 @pytest.fixture
-def tampered_interest_rate_json(transaction_json, payment_config: PagarmeFormConfig):
+def tampered_interest_rate_json(transaction_json, payment_config: PagarmeFormConfig, payment_item):
     transaction_json['installments'] = 12  # Should charge interest and amount be 11991 and each installment 9.99
     return transaction_json
 
@@ -190,15 +191,28 @@ def pargarme_tampered_interest_rate_resps(tampered_interest_rate_json):
 
 
 @pytest.fixture
-def resp_tampered_interest_rate(client, pargarme_tampered_interest_rate_resps):
-    return client.post(reverse('django_pagarme:capture'), {'token': TOKEN})
+def resp_tampered_interest_rate(client, pargarme_tampered_interest_rate_resps, logger_exception_mock):
+    return client.get(reverse('django_pagarme:capture', kwargs={'token': TOKEN}))
 
 
 def test_status_code_invalid_interest_rate(resp_tampered_interest_rate):
     assert resp_tampered_interest_rate.status_code == 400
 
 
+def test_interest_error_msg(resp_tampered_interest_rate, tampered_installments_json,
+                            payment_config: PagarmeFormConfig, logger_exception_mock, payment_item:PagarmeItemConfig):
+    installments = tampered_installments_json['installments']
+    logger_exception_mock.assert_called_once_with(
+        f'Parcelamento em 12 vez(es) com juros 1.66% deveria dar '
+        f'{payment_config.calculate_amount(payment_item.price, 12)}'
+        f' mas deu '
+        f'{payment_item.price}'
+    )
+
+
 TRANSACTION_ID = 7656690
+
+
 @pytest.fixture
 def transaction_json(payment_item: PagarmeItemConfig):
     return {
@@ -227,8 +241,6 @@ def transaction_json(payment_item: PagarmeItemConfig):
         }
 
     }
-
-
 
 
 @pytest.fixture

@@ -44,7 +44,7 @@ def resp_no_user(client, pagarme_responses):
         raise facade.ImpossibleUserCreation()
 
     facade.set_user_factory(factory)
-    yield client.post(reverse('django_pagarme:capture'), {'token': TOKEN})
+    yield client.get(reverse('django_pagarme:capture', kwargs={'token': TOKEN}))
     facade.set_user_factory(facade._default_factory)
 
 
@@ -70,7 +70,7 @@ def client_with_user(logged_user, client: Client):
 
 @pytest.fixture
 def resp_with_user(client_with_user, pagarme_responses):
-    return client_with_user.post(reverse('django_pagarme:capture'), {'token': TOKEN})
+    return client_with_user.post(reverse('django_pagarme:capture', kwargs={'token': TOKEN}))
 
 
 def test_logged_user_payment_saved(resp_with_user, logged_user):
@@ -122,7 +122,7 @@ def resp_user_factory(client, pagarme_responses, logged_user, captured_json):
 
     facade.set_user_factory(factory)
 
-    yield client.post(reverse('django_pagarme:capture'), {'token': TOKEN})
+    yield client.get(reverse('django_pagarme:capture', kwargs={'token': TOKEN}))
     # returning factory to original function
     facade._user_factory = facade._default_factory
 
@@ -136,7 +136,7 @@ def test_user_factory_profile_creation(resp_user_factory, logged_user):
 @pytest.fixture
 def resp_after_first_purchase(client_with_user, pagarme_responses, logged_user):
     baker.make(UserPaymentProfile, user_id=logged_user.id, phone='5599888888888')
-    return client_with_user.post(reverse('django_pagarme:capture'), {'token': TOKEN})
+    return client_with_user.post(reverse('django_pagarme:capture', kwargs={'token': TOKEN}))
 
 
 def test_user_payment_profile_update_with_last_data(resp_after_first_purchase, logged_user):

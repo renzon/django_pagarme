@@ -1,6 +1,7 @@
 from collections import ChainMap
+from logging import Logger
 
-from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseNotAllowed, JsonResponse
+from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseNotAllowed
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils.http import urlencode
@@ -9,6 +10,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django_pagarme import facade
 from django_pagarme.facade import InvalidNotificationStatusTransition
 from django_pagarme.models import PaymentViolation
+
+logger = Logger(__file__)
 
 
 def contact_info(request, slug):
@@ -32,14 +35,22 @@ def contact_info(request, slug):
         return redirect(f'{path}?{query_string}')
 
 
-def capture(request):
-    token = request.POST['token']
+def capture(request, token):
     try:
         payment = facade.capture(token, request.user.id)
-    except facade.PaymentViolation as violation:
-        return JsonResponse({'errors': str(violation)}, status=400)
+    except facade.PaymentViolation as e:
+        logger.exception(str(e))
+        return HttpResponseBadRequest()
     else:
-        return JsonResponse(payment.to_dict())
+        if payment.payment_method == facade.BOLETO:
+            ctx = {'payment': payment}
+            return render(request, 'django_pagarme/show_boleto_data.html', ctx)
+        else:
+            return redirect(reverse('django_pagarme:thanks', kwargs={'slug': payment.first_item_slug()}))
+
+
+def thanks(request, slug):
+    pass
 
 
 @csrf_exempt
@@ -61,7 +72,7 @@ def notification(request):
     return HttpResponse()
 
 
-def pagarme(request, slug: str):
+def pagarme(request, slug):
     open_modal = request.GET.get('open_modal', '').lower() == 'true'
     customer_qs_data = {k: request.GET.get(k, '') for k in ['name', 'email', 'phone']}
     customer_qs_data = {k: v for k, v in customer_qs_data.items() if v}
