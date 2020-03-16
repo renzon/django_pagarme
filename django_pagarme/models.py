@@ -115,6 +115,14 @@ class PagarmePayment(models.Model):
     def __str__(self):
         return self.transaction_id
 
+    def status(self) -> str:
+        """
+        Get status from payment notifications
+        :return: str
+        """
+        dct = self.notifications.order_by('-creation').values('status').first()
+        return dct['status']
+
     @classmethod
     def from_pagarme_transaction(cls, pagarme_json):
         """
@@ -186,6 +194,9 @@ class PagarmePayment(models.Model):
             if payment_config is None:
                 payment_config = payment_item.default_config
             yield payment_config, payment_item
+
+    def first_item_slug(self):
+        return self.items.first().slug
 
 
 PROCESSING = 'processing'

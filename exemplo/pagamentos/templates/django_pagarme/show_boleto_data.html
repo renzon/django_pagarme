@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dados do Boleto</title>
+</head>
+<body>
+    <h1>Dados do Boleto</h1>
+    <p>Código de Barras: {{ payment.boleto_barcode }}</p>
+    <iframe src="{{ payment.boleto_url }}"></iframe>
+</body>
+</html>

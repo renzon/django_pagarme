@@ -7,7 +7,7 @@ from pagarme import postback, transaction
 from django_pagarme.forms import ContactForm
 from django_pagarme.models import (
     AUTHORIZED, PAID, PENDING_REFUND, PROCESSING, PagarmeItemConfig, PagarmeNotification, PagarmePayment,
-    PaymentViolation, REFUNDED, REFUSED, UserPaymentProfile, WAITING_PAYMENT,
+    PaymentViolation, REFUNDED, REFUSED, UserPaymentProfile, WAITING_PAYMENT,BOLETO, CREDIT_CARD
 )
 
 # It's here to be available on facade contract
@@ -27,7 +27,9 @@ __all__ = [
     'WAITING_PAYMENT',
     'REFUSED',
     'UserPaymentProfileDoesNotExist',
-    'ImpossibleUserCreation'
+    'ImpossibleUserCreation',
+    'BOLETO',
+    'CREDIT_CARD',
 ]
 
 
@@ -50,6 +52,10 @@ def list_payment_item_configs() -> List[PagarmeItemConfig]:
 
 def capture(token: str, django_user_id=None) -> PagarmePayment:
     pagarme_transaction = transaction.find_by_id(token)
+    try:
+        return find_payment(pagarme_transaction['id'])
+    except PagarmePayment.DoesNotExist:
+        pass  # payment must be captured
     payment, all_payments_items = PagarmePayment.from_pagarme_transaction(pagarme_transaction)
     captured_transaction = transaction.capture(token, {'amount': payment.amount})
     if django_user_id is None:

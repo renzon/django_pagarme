@@ -1,63 +1,49 @@
 {% load django_pagarme %}
 {% csrf_token %}
 <script type="application/javascript">
-    $(document).ready(function () {
-        var csfr_token = document.querySelector('[name=csrfmiddlewaretoken]').value
-        var $button = $('#pay-button');
+    var csfr_token = document.querySelector('[name=csrfmiddlewaretoken]').value
+    var button = document.querySelector('.pay-button');
 
-        // Abrir o modal ao clicar no botão
-        $button.click(function () {
-
-            // inicia a instância do checkout
-            var checkout = new PagarMeCheckout.Checkout({
-                encryption_key: '{{CHAVE_PAGARME_CRIPTOGRAFIA_PUBLICA}}',
-                success: function (data) {
-                    $.ajax({
-                        url: '{% url 'django_pagarme:capture' %}',
-                        type: 'post',
-                        'data': data,
-                        headers: {
-                            "X-CSRFTOKEN": csfr_token
-                        },
-                        dataType: 'json',
-                        mode: 'same-origin',
-                        success: function (tokenData) {
-                            alert('Pagamento feito com sucesso');
-                        }
-                    });
-                },
-                error: function (err) {
-                    console.log(err);
-                },
-                close: function () {
-                    console.log('The modal has been closed.');
+    function initiateCheckout() {
+        {# inicia a instância do checkout #}
+        var checkout = new PagarMeCheckout.Checkout({
+            encryption_key: '{{CHAVE_PAGARME_CRIPTOGRAFIA_PUBLICA}}',
+            success: function (data) {
+                {# This is here because django will not allow creating url without slug #}
+                let url = '{% url 'django_pagarme:capture' token='f' %}';
+                url = url.substring(0, url.length - 1);
+                window.location.href = url + data['token'];
+            },
+            error: function (err) {
+                console.log(err);
+            },
+            close: function () {
+                console.log('The modal has been closed.');
+            }
+        });
+        {#Obs.: é necessário passar os valores boolean como string#}
+        checkout.open({
+            amount: {{payment_item.price}},
+            buttonText: 'Pagar',
+            buttonClass: 'botao-pagamento',
+            customerData: 'true',
+            reviewInformations: 'true',
+            createToken: 'true',
+            postback_url: '{{postback_url}}',
+            paymentMethods: '{{payment_item.default_config.payments_methods}}',
+            maxInstallments: {{payment_item.default_config.max_installments}},
+            defaultInstallment: {{payment_item.default_config.default_installment}},
+            freeInstallments: {{payment_item.default_config.free_installment}},
+            interestRate: {{payment_item.default_config.interest_rate|interest_rate}},
+            items: [
+                {
+                    id: '{{payment_item.slug}}',
+                    title: '{{payment_item.name}}',
+                    unit_price: {{payment_item.price}},
+                    quantity: 1,
+                    tangible: '{{payment_item.tangible|lower}}'
                 }
-            });
-
-            // Obs.: é necessário passar os valores boolean como string
-
-            checkout.open({
-                amount: {{payment_item.price}},
-                buttonText: 'Pagar',
-                buttonClass: 'botao-pagamento',
-                customerData: 'true',
-                reviewInformations: 'true',
-                createToken: 'true',
-                postback_url: '{{postback_url}}',
-                paymentMethods: '{{payment_item.default_config.payments_methods}}',
-                maxInstallments: {{payment_item.default_config.max_installments}},
-                defaultInstallment: {{payment_item.default_config.default_installment}},
-                freeInstallments: {{payment_item.default_config.free_installment}},
-                interestRate: {{payment_item.default_config.interest_rate|interest_rate}},
-                items: [
-                    {
-                        id: '{{payment_item.slug}}',
-                        title: '{{payment_item.name}}',
-                        unit_price: {{payment_item.price}},
-                        quantity: 1,
-                        tangible: '{{payment_item.tangible|lower}}'
-                    }
-                ],
+            ],
             {% if customer %}
                 customer: {
                     external_id: '{{customer.external_id}}',
@@ -71,10 +57,16 @@
                     phone_numbers: ['{{customer.phone}}']
                 }
             {% endif %}
-            });
         });
-        {% if open_modal %}
-            $button.click();
-        {% endif %}
-    });
+    }
+
+    {# Abrir o modal ao clicar no botão #}
+    button.addEventListener('click', initiateCheckout);
+    {% if open_modal %}
+        window.addEventListener('load', function () {
+            {# Workaroung because of TypeError: PagarMeCheckout.Checkout is not a constructor when proccenting right away #}
+            setTimeout(initiateCheckout, 1000);
+        });
+    {% endif %}
+
 </script>

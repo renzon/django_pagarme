@@ -4,7 +4,8 @@ from django_pagarme import views
 
 app_name = 'django_pagarme'
 urlpatterns = [
-    path('capture', views.capture, name='capture'),
+    path('capture/<str:token>', views.capture, name='capture'),
+    path('obrigado/<slug:slug>', views.thanks, name='thanks'),
     path('notification', views.notification, name='notification'),
     path('pagarme/<slug:slug>', views.pagarme, name='pagarme'),
     path('<slug:slug>', views.contact_info, name='contact_info'),
