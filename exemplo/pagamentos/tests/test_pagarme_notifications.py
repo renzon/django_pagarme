@@ -40,10 +40,10 @@ def pagarme_payment(payment_item):
 
 
 @pytest.fixture
-def resp(client, pagarme_payment):
+def resp(client, pagarme_payment, payment_item):
     return client.generic(
         'POST',
-        reverse('django_pagarme:notification'),
+        reverse('django_pagarme:notification', kwargs={'slug':payment_item.slug}),
         RAW_POST.encode('utf8'),
         content_type='application/x-www-form-urlencoded',
         HTTP_X_HUB_SIGNATURE=TRANSACTION_SIGNATURE
@@ -59,11 +59,11 @@ def test_notification_exists(resp):
 
 
 @pytest.fixture
-def resp_tampered(client, pagarme_payment):
+def resp_tampered(client, pagarme_payment, payment_item):
     tampered_post = RAW_POST + 'r'
     return client.generic(
         'POST',
-        reverse('django_pagarme:notification'),
+        reverse('django_pagarme:notification', kwargs={'slug':payment_item.slug}),
         tampered_post.encode('utf8'),
         content_type='application/x-www-form-urlencoded',
         HTTP_X_HUB_SIGNATURE=TRANSACTION_SIGNATURE

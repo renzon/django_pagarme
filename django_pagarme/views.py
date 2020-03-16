@@ -54,7 +54,7 @@ def thanks(request, slug):
 
 
 @csrf_exempt
-def notification(request):
+def notification(request, slug):
     if request.method != 'POST':
         return HttpResponseNotAllowed([request.method])
 
