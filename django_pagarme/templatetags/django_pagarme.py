@@ -9,7 +9,7 @@ register = template.Library()
 
 @register.inclusion_tag('django_pagarme/pagarme_js_form.html')
 def show_pagarme(payment_item: PagarmeItemConfig, customer: dict = None, open_modal: bool = False):
-    notification_path = reverse('django_pagarme:notification')
+    notification_path = reverse('django_pagarme:notification', kwargs={'slug': payment_item.slug})
     domain = settings.ALLOWED_HOSTS[0]
     return {
         'payment_item': payment_item,
