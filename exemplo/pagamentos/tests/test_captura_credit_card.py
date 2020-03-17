@@ -81,12 +81,12 @@ def test_pagarme_payment_data(resp, transaction_json, payment_item: PagarmeItemC
 
 
 def test_pagarme_payment_initial_configuration(resp):
-    payment = facade.find_payment(str(TRANSACTION_ID))
+    payment = facade.find_payment_by_transaction(str(TRANSACTION_ID))
     assert [n.status for n in payment.notifications.all()] == [facade.PAID]
 
 
 def test_status_listener_executed(resp, payment_status_listener):
-    payment = facade.find_payment(str(TRANSACTION_ID))
+    payment = facade.find_payment_by_transaction(str(TRANSACTION_ID))
     payment_status_listener.assert_called_once_with(payment_id=payment.id)
 
 

@@ -53,7 +53,7 @@ def list_payment_item_configs() -> List[PagarmeItemConfig]:
 def capture(token: str, django_user_id=None) -> PagarmePayment:
     pagarme_transaction = transaction.find_by_id(token)
     try:
-        return find_payment(pagarme_transaction['id'])
+        return find_payment_by_transaction(pagarme_transaction['id'])
     except PagarmePayment.DoesNotExist:
         pass  # payment must be captured
     payment, all_payments_items = PagarmePayment.from_pagarme_transaction(pagarme_transaction)
@@ -119,9 +119,13 @@ def _save_notification(payment_id, current_status):
     return notification
 
 
-def find_payment(transaction_id: str):
+def find_payment_by_transaction(transaction_id: str) -> PagarmePayment:
     transaction_id = str(transaction_id)
     return PagarmePayment.objects.get(transaction_id=transaction_id)
+
+
+def find_payment(payment_id: int) -> PagarmePayment:
+    return PagarmePayment.objects.get(id=payment_id)
 
 
 class InvalidNotificationStatusTransition(Exception):

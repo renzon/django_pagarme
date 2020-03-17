@@ -63,11 +63,11 @@ def test_status_code(resp):
 
 
 def test_notification_exists(resp):
-    assert facade.find_payment(TRANSACTION_ID).notifications.exists()
+    assert facade.find_payment_by_transaction(TRANSACTION_ID).notifications.exists()
 
 
 def test_status_listener_executed(resp, payment_status_listener):
-    payment = facade.find_payment(str(TRANSACTION_ID))
+    payment = facade.find_payment_by_transaction(str(TRANSACTION_ID))
     payment_status_listener.assert_called_once_with(payment_id=payment.id)
 
 
