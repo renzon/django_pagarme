@@ -147,7 +147,7 @@ def add_contact_info_listener(callable: Callable):
     _contact_info_listeners.append(callable)
 
 
-def validate_and_inform_contact_info(name, email, phone, payment_item_slug):
+def validate_and_inform_contact_info(name, email, phone, payment_item_slug, user=None):
     """
     Validate contact info returning a dict containing normalized values.
     Ex:
@@ -157,6 +157,7 @@ def validate_and_inform_contact_info(name, email, phone, payment_item_slug):
     This dict will also be passed to callables configured on add_contact_info_listener.
     Callables must declare parameters with names 'name', 'email', 'phone' and 'payment_item_slug'
     raises InvalidContactData data in case data is invalid
+    :param user: Django user
     :param name:
     :param email:
     :param phone:
@@ -169,7 +170,7 @@ def validate_and_inform_contact_info(name, email, phone, payment_item_slug):
         raise InvalidContactData(contact_form=form)
     data = dict(form.cleaned_data)
     for listener in _contact_info_listeners:
-        listener(payment_item_slug=payment_item_slug, **data)
+        listener(payment_item_slug=payment_item_slug, user=user, **data)
     return data
 
 

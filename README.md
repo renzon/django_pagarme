@@ -12,7 +12,7 @@ App Django para Automatizar Integração com Gateway de Pagamento Pagarme
 Instale via pip
 
 ```python
-pip isntall django_pagarme
+pip install django_pagarme
 ```
 
 ## Configure o Django
@@ -22,6 +22,7 @@ Configure seu settings.py
 ```
 INSTALLED_APPS = [
     'django_pagarme',
+    'phonenumber_field',
     ...
 ]
 
@@ -29,12 +30,44 @@ INSTALLED_APPS = [
 CHAVE_PAGARME_API_PRIVADA = 'CHAVE_PAGARME_API_PRIVADA')
 CHAVE_PAGARME_CRIPTOGRAFIA_PUBLICA = 'CHAVE_PAGARME_CRIPTOGRAFIA_PUBLICA'
 
+# Para validar telefones no Brasil
+PHONENUMBER_DEFAULT_REGION = 'BR'
+
 ```
 
 Rode as migrações
 
 ```
 python manage.py migrate
+```
+
+Configure as urls:
+
+```python
+from django.urls import include, path
+...
+
+urlpatterns = [
+    path('checkout/', include('django_pagarme.urls')),
+    ...
+]
+```
+
+## Personalize seus formulários
+
+Cria uma app e no diretório de templates, crie seus formuários
+
+Dados de Contato `django_pagarme/contact_form.html`
+
+Ex:
+```html
+<body>
+<form action="{% url 'django_pagarme:contact_info' slug=slug %}" method="post">
+    {% csrf_token %}
+    {{ contact_form.as_p }}
+    <button type="submit">Comprar</button>
+</form>
+</body>
 ```
 
 ## Opções gerais de pagamento
