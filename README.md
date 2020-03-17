@@ -55,9 +55,13 @@ urlpatterns = [
 
 ## Personalize seus formulários
 
-Cria uma app e no diretório de templates, crie seus formuários
+Cria uma app e no diretório de templates, crie suas páginas como descrito abaixo.
 
-Dados de Contato `django_pagarme/contact_form.html`
+### Dados de Contato
+
+Formulário para obter dados de contato do usuário 
+ 
+Template `django_pagarme/contact_form.html`
 
 Ex:
 ```html
@@ -69,6 +73,47 @@ Ex:
 </form>
 </body>
 ```
+
+### Formulário de erros
+
+Formulário de erros de dados de contato do usuário.
+ 
+Template `django_pagarme/contact_form_errors.html`
+
+Pode herdar de `contact_form.html` no caso de vc decidir que quer usar a mesma página com formulário
+
+Ex:
+```html
+{% extends 'django_pagarme/contact_form.html' %}
+```
+
+### Página de Checkout do Pagarme
+
+Página onde o usuário preenche os dados de pagamento.
+ 
+Template `django_pagarme/pagarme.html`
+
+Deve ter um elemento clicável com classe css `pay-button`.
+Ao clicar nesse elemento, o checkout é iniciado.
+
+Ex:
+```html
+{% load django_pagarme %}
+<html>
+<head>
+    <!-- SCRIPT PAGAR.ME -->
+    <script src="//assets.pagar.me/checkout/1.1.0/checkout.js"></script>
+</head>
+<body>
+<button class="pay-button">Abrir modal de pagamento</button>
+{% show_pagarme payment_item customer open_modal %}
+
+</body>
+</html>
+```
+
+# TODO: Documentar listeners
+
 
 ## Opções gerais de pagamento
 

@@ -49,7 +49,7 @@ def test_status_code(resp, payment_item):
 
 
 def test_success_boleto_data(resp):
-    payment = facade.find_payment(TRANSACTION_ID)
+    payment = facade.find_payment_by_transaction(TRANSACTION_ID)
     assert_contains(resp, payment.boleto_barcode)
     assert_contains(resp, payment.boleto_url)
 
@@ -81,7 +81,7 @@ def test_pagarme_payment_data(resp, transaction_json, payment_item: PagarmeItemC
 
 
 def test_pagarme_payment_initial_configuration(resp):
-    payment = facade.find_payment(str(TRANSACTION_ID))
+    payment = facade.find_payment_by_transaction(str(TRANSACTION_ID))
     assert [n.status for n in payment.notifications.all()] == [facade.WAITING_PAYMENT]
 
 
