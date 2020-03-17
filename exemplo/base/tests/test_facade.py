@@ -12,7 +12,10 @@ def listener_mock(mocker):
 
 
 def test_add_contact_info_listener_success(listener_mock):
-    dct = {'name': 'Foo Bar', 'email': 'foo@email.com', 'phone': '+5512987654321', 'payment_item_slug': 'pytools'}
+    dct = {
+        'name': 'Foo Bar', 'email': 'foo@email.com', 'phone': '+5512987654321', 'payment_item_slug': 'pytools',
+        'user': None
+    }
     facade.validate_and_inform_contact_info('Foo Bar', 'foo@email.com', '12987654321', 'pytools')
     listener_mock.assert_called_once_with(**dct)
 
