@@ -20,16 +20,21 @@ def user_factory(pagarme_transaction):
         )
 
 
-def print_contact_info(*args, **kwargs):
-    print('Contact Data:', args, kwargs)
+facade.set_user_factory(user_factory)
+
+
+def print_contact_info(name, email, phone, payment_item_slug, user=None):
+    print('Contact Data:', name, email, phone, payment_item_slug, user)
+
+
+facade.add_contact_info_listener(print_contact_info)
 
 
 def print_payment_id(payment_id):
-    print(payment_id)
+    payment = facade.find_payment(payment_id)
+    print(payment, payment.status())
 
 
-facade.set_user_factory(user_factory)
-facade.add_contact_info_listener(print_contact_info)
 facade.add_payment_status_changed(print_payment_id)
 
 
