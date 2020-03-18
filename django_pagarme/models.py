@@ -1,4 +1,5 @@
 from math import ceil
+from types import GeneratorType
 
 from django.contrib.auth import get_user_model
 from django.core.validators import MaxValueValidator, MinValueValidator
@@ -36,7 +37,7 @@ class PagarmeFormConfig(models.Model):
     def __str__(self):
         return self.name
 
-    def calculate_amount(self, amount, installments):
+    def calculate_amount(self, amount: int, installments: int) -> int:
         """
         Check pagarme
         https://docs.pagar.me/reference#calculando-pagamentos-parcelados
@@ -47,6 +48,23 @@ class PagarmeFormConfig(models.Model):
         if installments <= self.free_installment:
             return amount
         return ceil(amount * (1 + self.interest_rate * installments / 100))
+
+    def max_amount_after_interest(self, amount: int) -> int:
+        return self.calculate_amount(amount, self.max_installments)
+
+    def max_installment_amount_after_interest(self, amount: int) -> int:
+        return self.max_amount_after_interest(amount) // self.max_installments
+
+    def payment_plans(self, amount: int) -> GeneratorType:
+        """
+        Returns all payment plans as a generator tuples of for (installments, amount, installment_amount)
+        :param amount:
+        :return:
+        """
+        for i in range(1, self.max_installments + 1):
+            amount = self.calculate_amount(amount, i)
+            installment_amount = amount // i
+            yield i, amount, installment_amount
 
 
 class PagarmeItemConfig(models.Model):
@@ -62,6 +80,19 @@ class PagarmeItemConfig(models.Model):
     class Meta:
         verbose_name = 'Configuração de Item de Pagamento'
         verbose_name_plural = 'Configurações Itens de Pagamento'
+
+    def max_installments(self):
+        return self.default_config.max_installments
+
+    def max_amount_after_interest(self) -> int:
+        return self.default_config.max_amount_after_interest(self.price)
+
+    def max_installment_amount_after_interest(self) -> int:
+        return self.default_config.max_installment_amount_after_interest(self.price)
+
+    @property
+    def payment_plans(self):
+        return list(self.default_config.payment_plans(self.price))
 
     def get_absolute_url(self):
         return reverse('django_pagarme:contact_info', kwargs={'slug': self.slug})
