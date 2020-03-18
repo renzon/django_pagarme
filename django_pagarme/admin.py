@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.utils.safestring import mark_safe
 
 from django_pagarme.models import (
     PagarmeFormConfig, PagarmeItemConfig, PagarmeNotification, PagarmePayment, UserPaymentProfile,
@@ -7,9 +8,19 @@ from django_pagarme.models import (
 
 @admin.register(PagarmeItemConfig)
 class PagarmeItemConfigAdmin(admin.ModelAdmin):
-    list_display = ('name', 'slug', 'price', 'tangible', 'default_config')
+    list_display = ('name', 'slug', 'price', 'tangible', 'default_config', 'contact_form', 'checkout')
     list_filter = ('default_config',)
     prepopulated_fields = {'slug': ('name',)}
+
+    def contact_form(self, pagarme_item_config: PagarmeItemConfig):
+        return mark_safe(f'<a href="{pagarme_item_config.get_absolute_url()}">Contact Form</a>')
+
+    contact_form.short_description = 'contact form'
+
+    def checkout(self, pagarme_item_config: PagarmeItemConfig):
+        return mark_safe(f'<a href="{pagarme_item_config.get_checkout_url()}">Checkout</a>')
+
+    checkout.short_description = 'checkout'
 
 
 @admin.register(PagarmeFormConfig)
