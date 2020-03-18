@@ -59,12 +59,15 @@ class PagarmeItemConfig(models.Model):
     def __str__(self):
         return self.name
 
-    def get_absolute_url(self):
-        return reverse('django_pagarme:contact_info', kwargs={'slug': self.slug})
-
     class Meta:
         verbose_name = 'Configuração de Item de Pagamento'
         verbose_name_plural = 'Configurações Itens de Pagamento'
+
+    def get_absolute_url(self):
+        return reverse('django_pagarme:contact_info', kwargs={'slug': self.slug})
+
+    def get_checkout_url(self):
+        return reverse('django_pagarme:pagarme', kwargs={'slug': self.slug})
 
 
 class PaymentViolation(Exception):
