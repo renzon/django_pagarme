@@ -29,4 +29,15 @@ def interest_rate(value):
         return f'{value:.2f}'
 
 
+def cents_to_brl(value):
+    try:
+        value = int(value)
+    except ValueError:
+        return ''
+    else:
+        value /= 100  # to brl
+        return f'R$ {value:,.2f}'.replace('.', '@').replace(',', '.').replace('@', ',')
+
+
 register.filter('interest_rate', interest_rate)
+register.filter('cents_to_brl', cents_to_brl)

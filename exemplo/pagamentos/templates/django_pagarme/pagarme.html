@@ -2,9 +2,21 @@
 <html>
 <head>
     <!-- SCRIPT PAGAR.ME -->
+    <title>{{ payment_item.name }}</title>
     <script src="//assets.pagar.me/checkout/1.1.0/checkout.js"></script>
 </head>
 <body>
+<h1>{{ payment_item.name }}</h1>
+<h2>Planos</h2>
+<ul>
+    {% for installments, amount, installment_amount in payment_item.payment_plans %}
+        {% if installments == 1 %}
+            <li>{{ amount|cents_to_brl }} a vista</li>
+        {% else %}
+            <li>{{ amount|cents_to_brl }} em {{ installments }} parcelas de {{ installment_amount|cents_to_brl }}</li>
+        {% endif %}
+    {% endfor %}
+</ul>
 <button class="pay-button">Abrir modal de pagamento</button>
 {% show_pagarme payment_item customer open_modal %}
 
