@@ -53,8 +53,9 @@
                     documents: {
                         type: '{{customer.document.type}}',
                         number: '{{customer.document.number}}'
-                    },
-                    phone_numbers: ['{{customer.phone}}']
+                    }{% if customer.phone %},
+                        phone_numbers: ['{{customer.phone}}']
+                    {% endif %}
                 }
             {% endif %}
         });
