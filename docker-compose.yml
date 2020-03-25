@@ -11,6 +11,6 @@ services:
       - LC_ALL=C.UTF-8
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres
-      - POSTGRES_DB= django_pagarme
+      - POSTGRES_DB=django_pagarme
     ports:
       - 5432:5432
