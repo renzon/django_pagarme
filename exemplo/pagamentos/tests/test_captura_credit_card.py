@@ -33,6 +33,26 @@ def payment_item(payment_config):
     )
 
 
+def test_payment_plans(payment_item):
+    payment_item.price = 39700
+
+    assert payment_item.payment_plans == [
+        (1, 39700, 39700), 
+        (2, 41019, 20509), 
+        (3, 41678, 13892), 
+        (4, 42337, 10584), 
+        (5, 42996, 8599), 
+        (6, 43655, 7275), 
+        (7, 44314, 6330), 
+        (8, 44973, 5621), 
+        (9, 45632, 5070), 
+        (10, 46291, 4629), 
+        (11, 46950, 4268), 
+        (12, 47609, 3967),
+    ]
+
+
+
 @pytest.fixture
 def pagarme_responses(transaction_json, captura_json):
     with responses.RequestsMock() as rsps:
