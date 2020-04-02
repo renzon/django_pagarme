@@ -99,7 +99,6 @@ Ao clicar nesse elemento, o checkout é iniciado.
 Ex:
 ```html
 {% load django_pagarme %}
-{% load django_pagarme %}
 <html>
 <head>
     <!-- SCRIPT PAGAR.ME -->
