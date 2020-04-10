@@ -62,9 +62,9 @@ class PagarmeFormConfig(models.Model):
         :return:
         """
         for i in range(1, self.max_installments + 1):
-            amount = self.calculate_amount(amount, i)
-            installment_amount = amount // i
-            yield i, amount, installment_amount
+            calculated_amount = self.calculate_amount(amount, i)
+            installment_amount = calculated_amount // i
+            yield i, calculated_amount, installment_amount
 
 
 class PagarmeItemConfig(models.Model):
