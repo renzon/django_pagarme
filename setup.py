@@ -133,7 +133,8 @@ setup(
     ],
     install_requires=[
         'django >= 2.0',
-        'django-phonenumber-field[phonenumberslite]'
+        'django-phonenumber-field[phonenumberslite]',
+        'pagarme-python'
     ],
     zip_safe=False,
 )
