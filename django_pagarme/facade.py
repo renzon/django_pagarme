@@ -53,10 +53,10 @@ def list_payment_item_configs() -> List[PagarmeItemConfig]:
 def capture(token: str, django_user_id=None) -> PagarmePayment:
     pagarme_transaction = transaction.find_by_id(token)
     try:
-        return find_payment_by_transaction(pagarme_transaction['id'])
+        payment = find_payment_by_transaction(pagarme_transaction['id'])
+        all_payments_items, _ =payment.payments_items_from_pagarme_json(pagarme_transaction)
     except PagarmePayment.DoesNotExist:
-        pass  # payment must be captured
-    payment, all_payments_items = PagarmePayment.from_pagarme_transaction(pagarme_transaction)
+        payment, all_payments_items = PagarmePayment.from_pagarme_transaction(pagarme_transaction)
     captured_transaction = transaction.capture(token, {'amount': payment.amount})
     if django_user_id is None:
         try:
@@ -83,10 +83,15 @@ def capture(token: str, django_user_id=None) -> PagarmePayment:
 
 
 def handle_notification(transaction_id: str, current_status: str, raw_body: str,
-                        expected_signature: str) -> PagarmeNotification:
+                        expected_signature: str, pagarme_notification_dict) -> PagarmeNotification:
     if not postback.validate(expected_signature, raw_body):
         raise PaymentViolation('')
-    payment_id = PagarmePayment.objects.values_list('id').get(transaction_id=transaction_id)[0]
+    try:
+        payment_id = PagarmePayment.objects.values_list('id').get(transaction_id=transaction_id)[0]
+    except PagarmePayment.DoesNotExist:
+        pagarme_payment, _ = PagarmePayment.from_pagarme_post_notification_dict(pagarme_notification_dict)
+        pagarme_payment.save()
+        payment_id = pagarme_payment.id
     return _save_notification(payment_id, current_status)
 
 
