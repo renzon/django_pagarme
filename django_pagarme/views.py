@@ -64,7 +64,7 @@ def notification(request, slug):
     transaction_id = request.POST['transaction[id]']
     current_status = request.POST['current_status']
     try:
-        facade.handle_notification(transaction_id, current_status, raw_body, expected_signature)
+        facade.handle_notification(transaction_id, current_status, raw_body, expected_signature, request.POST)
     except PaymentViolation:
         return HttpResponseBadRequest()
     except InvalidNotificationStatusTransition:

@@ -158,9 +158,31 @@ class PagarmePayment(models.Model):
         return dct['status']
 
     @classmethod
+    def from_pagarme_post_notification_dict(cls, pagarme_notification_dict):
+        pagarme_transaction = {
+            'payment_method': pagarme_notification_dict['transaction[payment_method]'],
+            'authorized_amount': int(pagarme_notification_dict['transaction[authorized_amount]']),
+            'card_last_digits': pagarme_notification_dict['transaction[card][last_digits]'],
+            'installments': int(pagarme_notification_dict['transaction[installments]']),
+            'id': pagarme_notification_dict['transaction[id]'],
+            'card': {
+                'id': pagarme_notification_dict['transaction[card][id]']
+            },
+            'items': [
+                {
+                    'id': pagarme_notification_dict['transaction[items][0][id]'],
+                    'unit_price': int(pagarme_notification_dict['transaction[items][0][unit_price]']),
+                }
+
+            ]
+
+        }
+        return cls.from_pagarme_transaction(pagarme_transaction)
+
+    @classmethod
     def from_pagarme_transaction(cls, pagarme_json):
         """
-        Crate PagarmePayment from json pagarme transaction json, validating all data
+        Create PagarmePayment from json pagarme transaction json, validating all data
         raise PaymentViolation in case of discrepancies
         :param pagarme_json:
         :return:
@@ -176,11 +198,7 @@ class PagarmePayment(models.Model):
         if payment_method == CREDIT_CARD:
             payment.card_id = pagarme_json['card']['id']
 
-        items_ = pagarme_json['items']
-        payment_items = payment._validate_items(items_)
-        payment_config, first_payment_item = next(payment_items)
-        all_payments_items = [first_payment_item]
-        all_payments_items.extend(payment_item for _, payment_item in payment_items)
+        all_payments_items, payment_config = payment.payments_items_from_pagarme_json(pagarme_json)
         item_prices_sum = sum(payment_item.price for payment_item in all_payments_items)
         pagarme_authorized_amount = payment.amount
         if item_prices_sum > payment.amount:
@@ -231,6 +249,14 @@ class PagarmePayment(models.Model):
 
     def first_item_slug(self):
         return self.items.first().slug
+
+    def payments_items_from_pagarme_json(self, pagarme_json):
+        items_ = pagarme_json['items']
+        payment_items = self._validate_items(items_)
+        payment_config, first_payment_item = next(payment_items)
+        all_payments_items = [first_payment_item]
+        all_payments_items.extend(payment_item for _, payment_item in payment_items)
+        return all_payments_items, payment_config
 
 
 PROCESSING = 'processing'
