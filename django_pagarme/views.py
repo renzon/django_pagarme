@@ -35,7 +35,7 @@ def contact_info(request, slug):
         return redirect(f'{path}?{query_string}')
 
 
-def capture(request, token):
+def capture(request, slug, token):
     try:
         payment = facade.capture(token, request.user.id)
     except facade.PaymentViolation as e:
@@ -46,7 +46,7 @@ def capture(request, token):
             ctx = {'payment': payment}
             return render(request, 'django_pagarme/show_boleto_data.html', ctx)
         else:
-            return redirect(reverse('django_pagarme:thanks', kwargs={'slug': payment.first_item_slug()}))
+            return redirect(reverse('django_pagarme:thanks', kwargs={'slug': slug}))
 
 
 def thanks(request, slug):

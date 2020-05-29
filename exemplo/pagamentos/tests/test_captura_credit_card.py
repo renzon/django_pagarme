@@ -73,8 +73,8 @@ def payment_status_listener(mocker):
 
 
 @pytest.fixture
-def resp(client, pagarme_responses, payment_status_listener):
-    return client.get(reverse('django_pagarme:capture', kwargs={'token': TOKEN}))
+def resp(client, pagarme_responses, payment_status_listener, payment_item):
+    return client.get(reverse('django_pagarme:capture', kwargs={'token': TOKEN, 'slug': payment_item.slug}))
 
 
 def test_status_code(resp, payment_item):
@@ -148,7 +148,7 @@ def resp_existing_payment(client, pagarme_responses, payment_status_listener, ra
         content_type='application/x-www-form-urlencoded',
         HTTP_X_HUB_SIGNATURE=transaction_signature
     )
-    return client.get(reverse('django_pagarme:capture', kwargs={'token': TOKEN}))
+    return client.get(reverse('django_pagarme:capture', kwargs={'token': TOKEN, 'slug': payment_item.slug}))
 
 
 def test_pagarme_payment_data_with_authorized_notification(resp_existing_payment,
@@ -190,8 +190,8 @@ def pargarme_tampered_item_price_resps(tampered_item_price_json):
 
 
 @pytest.fixture
-def resp_tampered_item_price(client, pargarme_tampered_item_price_resps, logger_exception_mock):
-    return client.get(reverse('django_pagarme:capture', kwargs={'token': TOKEN}))
+def resp_tampered_item_price(client, pargarme_tampered_item_price_resps, logger_exception_mock, payment_item):
+    return client.get(reverse('django_pagarme:capture', kwargs={'token': TOKEN, 'slug': payment_item.slug}))
 
 
 def test_status_code_invalid_item_price(resp_tampered_item_price):
@@ -224,8 +224,8 @@ def pargarme_tampered_authorized_amount_resps(tampered_authorized_amount_json):
 
 
 @pytest.fixture
-def resp_tampered_authorized_amount(client, pargarme_tampered_authorized_amount_resps, logger_exception_mock):
-    return client.get(reverse('django_pagarme:capture', kwargs={'token': TOKEN}))
+def resp_tampered_authorized_amount(client, pargarme_tampered_authorized_amount_resps, logger_exception_mock, payment_item):
+    return client.get(reverse('django_pagarme:capture', kwargs={'token': TOKEN, 'slug': payment_item.slug}))
 
 
 def test_status_code_invalid_authorized_amount(resp_tampered_authorized_amount):
@@ -254,8 +254,8 @@ def pargarme_tampered_installments_resps(tampered_installments_json):
 
 
 @pytest.fixture
-def resp_tampered_installments(client, pargarme_tampered_installments_resps, logger_exception_mock):
-    return client.get(reverse('django_pagarme:capture', kwargs={'token': TOKEN}))
+def resp_tampered_installments(client, pargarme_tampered_installments_resps, logger_exception_mock, payment_item):
+    return client.get(reverse('django_pagarme:capture', kwargs={'token': TOKEN, 'slug': payment_item.slug}))
 
 
 def test_status_code_invalid_installments(resp_tampered_installments):
@@ -284,8 +284,8 @@ def pargarme_tampered_interest_rate_resps(tampered_interest_rate_json):
 
 
 @pytest.fixture
-def resp_tampered_interest_rate(client, pargarme_tampered_interest_rate_resps, logger_exception_mock):
-    return client.get(reverse('django_pagarme:capture', kwargs={'token': TOKEN}))
+def resp_tampered_interest_rate(client, pargarme_tampered_interest_rate_resps, logger_exception_mock, payment_item):
+    return client.get(reverse('django_pagarme:capture', kwargs={'token': TOKEN, 'slug': payment_item.slug}))
 
 
 def test_status_code_invalid_interest_rate(resp_tampered_interest_rate):

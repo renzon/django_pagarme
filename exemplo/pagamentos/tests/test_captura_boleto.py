@@ -39,8 +39,8 @@ def pagarme_responses(transaction_json, captura_json):
 
 
 @pytest.fixture
-def resp(client, pagarme_responses):
-    path = reverse('django_pagarme:capture', kwargs={'token': TOKEN})
+def resp(client, pagarme_responses, payment_item):
+    path = reverse('django_pagarme:capture', kwargs={'token': TOKEN, 'slug': payment_item.slug})
     return client.get(path)
 
 
@@ -110,8 +110,8 @@ def logger_exception_mock(mocker):
 
 
 @pytest.fixture
-def resp_tampered_item_price(client, pargarme_tampered_item_price_resps, logger_exception_mock):
-    path = reverse('django_pagarme:capture', kwargs={'token': TOKEN})
+def resp_tampered_item_price(client, pargarme_tampered_item_price_resps, logger_exception_mock, payment_item):
+    path = reverse('django_pagarme:capture', kwargs={'token': TOKEN, 'slug': payment_item.slug})
     return client.get(path)
 
 
@@ -140,8 +140,9 @@ def pargarme_tampered_authorized_amount_resps(tampered_authorized_amount_json):
 
 
 @pytest.fixture
-def resp_tampered_authorized_amount(client, pargarme_tampered_authorized_amount_resps,logger_exception_mock):
-    path = reverse('django_pagarme:capture', kwargs={'token': TOKEN})
+def resp_tampered_authorized_amount(client, pargarme_tampered_authorized_amount_resps, logger_exception_mock,
+                                    payment_item):
+    path = reverse('django_pagarme:capture', kwargs={'token': TOKEN, 'slug': payment_item.slug})
     return client.get(path)
 
 
@@ -171,8 +172,8 @@ def pargarme_tampered_installments_resps(tampered_installments_json):
 
 
 @pytest.fixture
-def resp_tampered_installments(client, pargarme_tampered_installments_resps,logger_exception_mock):
-    path = reverse('django_pagarme:capture', kwargs={'token': TOKEN})
+def resp_tampered_installments(client, pargarme_tampered_installments_resps, logger_exception_mock, payment_item):
+    path = reverse('django_pagarme:capture', kwargs={'token': TOKEN, 'slug': payment_item.slug})
     return client.get(path)
 
 
@@ -202,8 +203,8 @@ def pargarme_tampered_interest_rate_resps(tampered_interest_rate_json):
 
 
 @pytest.fixture
-def resp_tampered_interest_rate(client, pargarme_tampered_interest_rate_resps):
-    path = reverse('django_pagarme:capture', kwargs={'token': TOKEN})
+def resp_tampered_interest_rate(client, pargarme_tampered_interest_rate_resps, payment_item):
+    path = reverse('django_pagarme:capture', kwargs={'token': TOKEN, 'slug': payment_item.slug})
     return client.get(path)
 
 
