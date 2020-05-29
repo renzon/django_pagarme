@@ -6,6 +6,7 @@ jobs:
   build:
     env:
       PIPENV_NO_INHERIT: 1
+      PIPENV_IGNORE_VIRTUALENVS: 1
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -24,10 +25,8 @@ jobs:
     - name: Install dependencies
       working-directory: ./exemplo
       run: |
-
-        python -m pip install --upgrade pip
-        pip install pipenv
-        pipenv sync -d
+        pip install pipenv==2018.11.26
+        pipenv sync --dev
     - name: Lint with flake8
       working-directory: ./exemplo
       run: |
