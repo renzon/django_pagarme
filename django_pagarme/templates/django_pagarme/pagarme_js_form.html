@@ -10,7 +10,7 @@
             encryption_key: '{{CHAVE_PAGARME_CRIPTOGRAFIA_PUBLICA}}',
             success: function (data) {
                 {# This is here because django will not allow creating url without slug #}
-                let url = '{% url 'django_pagarme:capture' token='f' %}';
+                let url = '{% url 'django_pagarme:capture' slug=payment_item.slug token='f' %}';
                 url = url.substring(0, url.length - 1);
                 window.location.href = url + data['token'];
             },
