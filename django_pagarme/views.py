@@ -16,7 +16,18 @@ logger = Logger(__file__)
 
 def contact_info(request, slug):
     if request.method == 'GET':
-        form = facade.ContactForm()
+        user = request.user
+        if user.is_authenticated:
+            try:
+                payment_profile = facade.get_user_payment_profile(user.id)
+            except facade.UserPaymentProfileDoesNotExist:
+                form = facade.ContactForm({'name': user.first_name, 'email': user.email})
+            else:
+                form = facade.ContactForm(
+                    {'name': payment_profile.name, 'email': payment_profile.email, 'phone': payment_profile.phone}
+                )
+        else:
+            form = facade.ContactForm()
         ctx = {'contact_form': form, 'slug': slug}
         return render(request, 'django_pagarme/contact_form.html', ctx)
 
