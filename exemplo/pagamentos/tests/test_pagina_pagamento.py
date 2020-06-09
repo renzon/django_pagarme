@@ -4,7 +4,7 @@ from django.utils.http import urlencode
 from model_bakery import baker
 
 from django_assertions import assert_contains, assert_not_contains
-from django_pagarme.models import PagarmeFormConfig, PagarmeItemConfig
+from django_pagarme.models import PagarmeFormConfig, PagarmeItemConfig, UserPaymentProfile
 
 
 @pytest.fixture
@@ -146,3 +146,24 @@ def test_customer_qs_precedes_logged_user(resp_logged_user_and_customer_qs, logg
             assert_contains(resp_logged_user_and_customer_qs, f"{k}: '{v}'")
         else:
             assert_contains(resp_logged_user_and_customer_qs, v)
+
+
+@pytest.fixture
+def payment_profile(logged_user):
+    return baker.make(UserPaymentProfile, phone='+5512999999999', user=logged_user)
+
+
+@pytest.fixture
+def resp_logged_user_with_payment_profile(client, payment_item, logged_user, payment_profile):
+    client.force_login(logged_user)
+    path = reverse('django_pagarme:pagarme', kwargs={'slug': payment_item.slug})
+    return client.get(path)
+
+
+def test_payment_profile_precedes_logged_user(resp_logged_user_with_payment_profile, payment_profile: UserPaymentProfile):
+    assert_contains(resp_logged_user_with_payment_profile, payment_profile.phone)
+    assert_contains(resp_logged_user_with_payment_profile, payment_profile.name)
+    assert_contains(resp_logged_user_with_payment_profile, payment_profile.document_number)
+    assert_contains(resp_logged_user_with_payment_profile, payment_profile.document_type)
+    assert_contains(resp_logged_user_with_payment_profile, payment_profile.customer_type)
+
