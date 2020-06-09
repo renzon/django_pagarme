@@ -91,7 +91,12 @@ def pagarme(request, slug):
     user = request.user
     if user.is_authenticated:
         user_data = {'external_id': user.id, 'name': user.first_name, 'email': user.email}
-        customer = ChainMap(customer_qs_data, user_data)
+        try:
+            payment_profile = facade.get_user_payment_profile(user)
+        except facade.UserPaymentProfileDoesNotExist:
+            customer = ChainMap(customer_qs_data, user_data)
+        else:
+            customer = ChainMap(customer_qs_data, payment_profile.to_customer_dict(), user_data)
     else:
         customer = customer_qs_data
     ctx = {

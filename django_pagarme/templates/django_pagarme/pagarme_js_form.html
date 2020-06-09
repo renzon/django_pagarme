@@ -49,10 +49,12 @@
                     external_id: '{{customer.external_id}}',
                     name: '{{customer.name}}',
                     email: '{{customer.email}}',
+                    type: '{{ customer.type }}',
                     country: '{{customer.country}}',
+                    birthday: '1982-09-02',
                     documents: {
-                        type: '{{customer.document.type}}',
-                        number: '{{customer.document.number}}'
+                        type: '{{customer.documents.type}}',
+                        number: '{{customer.documents.number}}'
                     }{% if customer.phone %},
                         phone_numbers: ['{{customer.phone}}']
                     {% endif %}
