@@ -162,11 +162,11 @@ class PagarmePayment(models.Model):
         pagarme_transaction = {
             'payment_method': pagarme_notification_dict['transaction[payment_method]'],
             'authorized_amount': int(pagarme_notification_dict['transaction[authorized_amount]']),
-            'card_last_digits': pagarme_notification_dict['transaction[card][last_digits]'],
+            'card_last_digits': pagarme_notification_dict.get('transaction[card][last_digits]'),
             'installments': int(pagarme_notification_dict['transaction[installments]']),
             'id': pagarme_notification_dict['transaction[id]'],
             'card': {
-                'id': pagarme_notification_dict['transaction[card][id]']
+                'id': pagarme_notification_dict.get('transaction[card][id]')
             },
             'items': [
                 {
@@ -188,13 +188,7 @@ class PagarmePayment(models.Model):
         :return:
         """
         payment_method = pagarme_json['payment_method']
-        payment = cls(
-            payment_method=payment_method,
-            amount=pagarme_json['authorized_amount'],
-            card_last_digits=pagarme_json['card_last_digits'],
-            installments=pagarme_json['installments'],
-            transaction_id=str(pagarme_json['id'])
-        )
+        payment = cls(payment_method=payment_method, amount=pagarme_json['authorized_amount'], card_last_digits=pagarme_json['card_last_digits'], installments=pagarme_json['installments'], transaction_id=str(pagarme_json['id']))
         if payment_method == CREDIT_CARD:
             payment.card_id = pagarme_json['card']['id']
 
