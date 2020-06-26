@@ -7,11 +7,12 @@ from pagarme import postback, transaction
 from django_pagarme.forms import ContactForm
 from django_pagarme.models import (
     AUTHORIZED, BOLETO, CREDIT_CARD, PAID, PENDING_REFUND, PROCESSING, PagarmeItemConfig, PagarmeNotification,
-    PagarmePayment, PaymentViolation, REFUNDED, REFUSED, UserPaymentProfile, WAITING_PAYMENT,
+    PagarmePayment, PaymentViolation, REFUNDED, REFUSED, UserPaymentProfile, WAITING_PAYMENT, PagarmePaymentItem,
 )
 
 # It's here to be available on facade contract
 UserPaymentProfileDoesNotExist = UserPaymentProfile.DoesNotExist
+PagarmePaymentItemDoesNotExist=PagarmePaymentItem.DoesNotExist
 
 __all__ = [
     'get_payment_item',
@@ -27,6 +28,7 @@ __all__ = [
     'WAITING_PAYMENT',
     'REFUSED',
     'UserPaymentProfileDoesNotExist',
+    'PagarmePaymentItemDoesNotExist',
     'ImpossibleUserCreation',
     'BOLETO',
     'CREDIT_CARD',

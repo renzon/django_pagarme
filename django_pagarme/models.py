@@ -242,7 +242,10 @@ class PagarmePayment(models.Model):
             yield payment_config, payment_item
 
     def first_item_slug(self):
-        return self.items.first().slug
+        item = self.items.first()
+        if item is None:
+            raise PagarmePaymentItem.DoesNotExist(f'First item of {self} does not exist')
+        return item.slug
 
     def payments_items_from_pagarme_json(self, pagarme_json):
         items_ = pagarme_json['items']
