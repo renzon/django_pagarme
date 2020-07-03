@@ -89,6 +89,7 @@ def pagarme(request, slug):
     customer_qs_data = {k: request.GET.get(k, '') for k in ['name', 'email', 'phone']}
     customer_qs_data = {k: v for k, v in customer_qs_data.items() if v}
     user = request.user
+    address = None
     if user.is_authenticated:
         user_data = {'external_id': user.id, 'name': user.first_name, 'email': user.email}
         try:
@@ -97,12 +98,14 @@ def pagarme(request, slug):
             customer = ChainMap(customer_qs_data, user_data)
         else:
             customer = ChainMap(customer_qs_data, payment_profile.to_customer_dict(), user_data)
+            address = payment_profile.to_billing_address_dict()
     else:
         customer = customer_qs_data
     ctx = {
         'payment_item': facade.get_payment_item(slug),
         'open_modal': open_modal,
         'customer': customer,
-        'slug': slug
+        'slug': slug,
+        'address': address
     }
     return render(request, 'django_pagarme/pagarme.html', ctx)

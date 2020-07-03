@@ -43,8 +43,9 @@
                     quantity: 1,
                     tangible: '{{payment_item.tangible|lower}}'
                 }
-            ],
+            ]
             {% if customer %}
+                ,
                 customer: {
                     external_id: '{{customer.external_id}}',
                     name: '{{customer.name}}',
@@ -52,12 +53,27 @@
                     type: '{{ customer.type }}',
                     country: '{{customer.country}}',
                     birthday: '1982-09-02',
-                    documents: {
+                    documents: [{
                         type: '{{customer.documents.type}}',
                         number: '{{customer.documents.number}}'
-                    }{% if customer.phone %},
+                    }]{% if customer.phone %},
                         phone_numbers: ['{{customer.phone}}']
                     {% endif %}
+                }
+            {% endif %}
+        {% if address %}
+                ,
+                billing: {
+                    address:{
+                        country: '{{ address.country }}',
+                        state: '{{ address.state }}',
+                        city: '{{ address.city }}',
+                        neighborhood: '{{ address.neighborhood }}',
+                        street_number: '{{ address.street_number }}',
+                        street: '{{ address.street }}',
+                        zipcode: '{{ address.zipcode }}',
+                        complementary:'{{  complementary}}'
+                    }
                 }
             {% endif %}
         });
