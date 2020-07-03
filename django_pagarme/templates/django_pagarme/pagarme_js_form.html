@@ -61,18 +61,21 @@
                     {% endif %}
                 }
             {% endif %}
-        {% if address %}
+            {% if address %}
                 ,
                 billing: {
-                    address:{
+                    name: '{{customer.name}}',
+                    address: {
                         country: '{{ address.country }}',
                         state: '{{ address.state }}',
                         city: '{{ address.city }}',
                         neighborhood: '{{ address.neighborhood }}',
                         street_number: '{{ address.street_number }}',
                         street: '{{ address.street }}',
-                        zipcode: '{{ address.zipcode }}',
-                        complementary:'{{  complementary}}'
+                        zipcode: '{{ address.zipcode }}'
+                        {% if complementary %},
+                            complementary: '{{  complementary}}'
+                        {% endif %}
                     }
                 }
             {% endif %}
