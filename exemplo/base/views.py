@@ -1,11 +1,7 @@
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.shortcuts import render
-from pagarme import authentication_key
 
 from django_pagarme import facade
-
-authentication_key(settings.CHAVE_PAGARME_API_PRIVADA)
 
 
 def user_factory(pagarme_transaction):

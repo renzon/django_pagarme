@@ -1,8 +1,9 @@
 from typing import Callable, List
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import transaction as django_transaction
-from pagarme import postback, transaction
+from pagarme import postback, transaction, authentication_key
 
 from django_pagarme.forms import ContactForm
 from django_pagarme.models import (
@@ -12,7 +13,7 @@ from django_pagarme.models import (
 
 # It's here to be available on facade contract
 UserPaymentProfileDoesNotExist = UserPaymentProfile.DoesNotExist
-PagarmePaymentItemDoesNotExist=PagarmePaymentItem.DoesNotExist
+PagarmePaymentItemDoesNotExist = PagarmePaymentItem.DoesNotExist
 
 __all__ = [
     'get_payment_item',
@@ -33,6 +34,8 @@ __all__ = [
     'BOLETO',
     'CREDIT_CARD',
 ]
+
+authentication_key(settings.CHAVE_PAGARME_API_PRIVADA)
 
 
 def get_payment_item(slug: str) -> PagarmeItemConfig:
@@ -56,7 +59,7 @@ def capture(token: str, django_user_id=None) -> PagarmePayment:
     pagarme_transaction = transaction.find_by_id(token)
     try:
         payment = find_payment_by_transaction(pagarme_transaction['id'])
-        all_payments_items, _ =payment.payments_items_from_pagarme_json(pagarme_transaction)
+        all_payments_items, _ = payment.payments_items_from_pagarme_json(pagarme_transaction)
     except PagarmePayment.DoesNotExist:
         payment, all_payments_items = PagarmePayment.from_pagarme_transaction(pagarme_transaction)
     captured_transaction = transaction.capture(token, {'amount': payment.amount})
