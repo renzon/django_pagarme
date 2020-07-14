@@ -112,12 +112,12 @@ def test_logged_user_payment_billing_address_data(resp_with_user, logged_user):
 
 
 @pytest.fixture
-def resp_user_factory(client, pagarme_responses, logged_user, captured_json, payment_item):
+def resp_user_factory(client, pagarme_responses, logged_user, captured_json, transaction_json, payment_item):
     # this user is not logged, will be used as return of factory function
     factory_user = logged_user
 
     def factory(pagarme_transaction):
-        assert pagarme_transaction == captured_json
+        assert pagarme_transaction == transaction_json
         return factory_user
 
     facade.set_user_factory(factory)
@@ -230,11 +230,7 @@ def transaction_json(payment_item: PagarmeItemConfig, logged_user):
                 }]
         },
         'billing': {
-            'object': 'billing',
-            'id': 1168861,
-            'name': 'Foo',
             'address': {
-                'object': 'address',
                 'street': STREET,
                 'complementary': COMPLEMENTARY,
                 'street_number': STREET_NUMBER,
@@ -243,7 +239,6 @@ def transaction_json(payment_item: PagarmeItemConfig, logged_user):
                 'state': STATE,
                 'zipcode': ZIPCODE,
                 'country': ADDRESS_COUNTRY,
-                'id': 2641028
             }
         },
         'shipping': None,
