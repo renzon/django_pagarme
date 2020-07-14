@@ -1,3 +1,3 @@
-__version__ = '0.17'
+__version__ = '0.18'
 
 default_app_config = 'django_pagarme.apps.DjangoPagarmeConfig'

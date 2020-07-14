@@ -62,28 +62,27 @@ def capture(token: str, django_user_id=None) -> PagarmePayment:
         all_payments_items, _ = payment.payments_items_from_pagarme_json(pagarme_transaction)
     except PagarmePayment.DoesNotExist:
         payment, all_payments_items = PagarmePayment.from_pagarme_transaction(pagarme_transaction)
-    captured_transaction = transaction.capture(token, {'amount': payment.amount})
-    if django_user_id is None:
-        try:
-            user = _user_factory(captured_transaction)
-        except ImpossibleUserCreation:
-            pass
-        else:
-            django_user_id = user.id
+        if django_user_id is None:
+            try:
+                user = _user_factory(pagarme_transaction)
+            except ImpossibleUserCreation:
+                pass
+            else:
+                django_user_id = user.id
 
-    if django_user_id is not None:
-        profile = UserPaymentProfile.from_pagarme_dict(django_user_id, captured_transaction)
-        profile.save()
+        if django_user_id is not None:
+            profile = UserPaymentProfile.from_pagarme_dict(django_user_id, pagarme_transaction)
+            profile.save()
+
         payment.user_id = django_user_id
+        with django_transaction.atomic():
+            payment.save()
+            payment.items.set(all_payments_items)
 
+    captured_transaction = transaction.capture(token, {'amount': payment.amount})
     payment.extract_boleto_data(captured_transaction)
-    with django_transaction.atomic():
-        payment.save()
-        payment.items.set(all_payments_items)
-        notification = PagarmeNotification(status=captured_transaction['status'], payment=payment)
-        notification.save()
-    for listener in _payment_status_changed_listeners:
-        listener(payment_id=payment.id)
+    payment.save()
+    _save_notification(payment.id, captured_transaction['status'])
     return payment
 
 
@@ -94,10 +93,88 @@ def handle_notification(transaction_id: str, current_status: str, raw_body: str,
     try:
         payment_id = PagarmePayment.objects.values_list('id').get(transaction_id=transaction_id)[0]
     except PagarmePayment.DoesNotExist:
-        pagarme_payment, _ = PagarmePayment.from_pagarme_post_notification_dict(pagarme_notification_dict)
-        pagarme_payment.save()
+        transaction_dict = to_pagarme_transaction(pagarme_notification_dict)
+        pagarme_payment, all_payments_items = PagarmePayment.from_pagarme_transaction(transaction_dict)
+        try:
+            user = _user_factory(transaction_dict)
+        except ImpossibleUserCreation:
+            pass
+        else:
+            pagarme_payment.user_id = user.id
+            profile = UserPaymentProfile.from_pagarme_dict(user.id, transaction_dict)
+            profile.save()
+
+        with django_transaction.atomic():
+            pagarme_payment.save()
+            pagarme_payment.items.set(all_payments_items)
         payment_id = pagarme_payment.id
     return _save_notification(payment_id, current_status)
+
+
+def to_pagarme_transaction(pagarme_notification_dict: dict) -> dict:
+    """
+    Tranform from notification dict to transaction git
+    """
+    return {
+        'status': pagarme_notification_dict['current_status'],
+        'payment_method': pagarme_notification_dict['transaction[payment_method]'],
+        'authorized_amount': int(pagarme_notification_dict['transaction[authorized_amount]']),
+        'card_last_digits': pagarme_notification_dict.get('transaction[card][last_digits]'),
+        'installments': int(pagarme_notification_dict['transaction[installments]']),
+        'id': pagarme_notification_dict['transaction[id]'],
+        'card': {
+            'id': pagarme_notification_dict.get('transaction[card][id]')
+        },
+        'items': [
+            {
+                'id': pagarme_notification_dict['transaction[items][0][id]'],
+                'unit_price': int(pagarme_notification_dict['transaction[items][0][unit_price]']),
+            }
+
+        ],
+        'customer': {
+            'object': pagarme_notification_dict['transaction[customer][object]'],
+            'id': pagarme_notification_dict['transaction[customer][id]'],
+            'external_id': pagarme_notification_dict['transaction[customer][external_id]'],
+            'type': pagarme_notification_dict['transaction[customer][type]'],
+            'country': pagarme_notification_dict['transaction[customer][country]'],
+            'document_number': pagarme_notification_dict['transaction[customer][document_number]'],
+            'document_type': pagarme_notification_dict['transaction[customer][document_type]'],
+            'name': pagarme_notification_dict['transaction[customer][name]'],
+            'email': pagarme_notification_dict['transaction[customer][email]'],
+            'phone_numbers': [
+                pagarme_notification_dict['transaction[customer][phone_numbers][0]']
+            ],
+            'born_at': pagarme_notification_dict['transaction[customer][born_at]'],
+            'birthday': pagarme_notification_dict['transaction[customer][birthday]'],
+            'gender': pagarme_notification_dict['transaction[customer][gender]'],
+            'date_created': pagarme_notification_dict['transaction[customer][date_created]'],
+            'documents': [{
+                'object': pagarme_notification_dict['transaction[customer][documents][0][object]'],
+                'id': pagarme_notification_dict['transaction[customer][documents][0][id]'],
+                'type': pagarme_notification_dict['transaction[customer][documents][0][type]'],
+                'number': pagarme_notification_dict['transaction[customer][documents][0][number]'],
+            }]
+        },
+        'billing': {
+            'object': pagarme_notification_dict['transaction[billing][object]'],
+            'id': pagarme_notification_dict['transaction[billing][id]'],
+            'name': pagarme_notification_dict['transaction[billing][name]'],
+            'address': {
+                'object': pagarme_notification_dict['transaction[billing][address][object]'],
+                'street': pagarme_notification_dict['transaction[billing][address][street]'],
+                'complementary': pagarme_notification_dict['transaction[billing][address][complementary]'],
+                'street_number': pagarme_notification_dict['transaction[billing][address][street_number]'],
+                'neighborhood': pagarme_notification_dict['transaction[billing][address][neighborhood]'],
+                'city': pagarme_notification_dict['transaction[billing][address][city]'],
+                'state': pagarme_notification_dict['transaction[billing][address][state]'],
+                'zipcode': pagarme_notification_dict['transaction[billing][address][zipcode]'],
+                'country': pagarme_notification_dict['transaction[billing][address][country]'],
+                'id': pagarme_notification_dict['transaction[billing][address][id]'],
+            }
+        }
+
+    }
 
 
 _impossible_states = {

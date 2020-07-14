@@ -157,28 +157,7 @@ class PagarmePayment(models.Model):
         dct = self.notifications.order_by('-creation').values('status').first()
         return dct['status']
 
-    @classmethod
-    def from_pagarme_post_notification_dict(cls, pagarme_notification_dict):
-        pagarme_transaction = {
-            'status': pagarme_notification_dict['current_status'],
-            'payment_method': pagarme_notification_dict['transaction[payment_method]'],
-            'authorized_amount': int(pagarme_notification_dict['transaction[authorized_amount]']),
-            'card_last_digits': pagarme_notification_dict.get('transaction[card][last_digits]'),
-            'installments': int(pagarme_notification_dict['transaction[installments]']),
-            'id': pagarme_notification_dict['transaction[id]'],
-            'card': {
-                'id': pagarme_notification_dict.get('transaction[card][id]')
-            },
-            'items': [
-                {
-                    'id': pagarme_notification_dict['transaction[items][0][id]'],
-                    'unit_price': int(pagarme_notification_dict['transaction[items][0][unit_price]']),
-                }
 
-            ]
-
-        }
-        return cls.from_pagarme_transaction(pagarme_transaction)
 
     @classmethod
     def from_pagarme_transaction(cls, pagarme_json):
