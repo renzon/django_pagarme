@@ -160,6 +160,7 @@ class PagarmePayment(models.Model):
     @classmethod
     def from_pagarme_post_notification_dict(cls, pagarme_notification_dict):
         pagarme_transaction = {
+            'status': pagarme_notification_dict['current_status'],
             'payment_method': pagarme_notification_dict['transaction[payment_method]'],
             'authorized_amount': int(pagarme_notification_dict['transaction[authorized_amount]']),
             'card_last_digits': pagarme_notification_dict.get('transaction[card][last_digits]'),
@@ -193,8 +194,11 @@ class PagarmePayment(models.Model):
                       transaction_id=str(pagarme_json['id']))
         if payment_method == CREDIT_CARD:
             payment.card_id = pagarme_json['card']['id']
-
         all_payments_items, payment_config = payment.payments_items_from_pagarme_json(pagarme_json)
+
+        current_status = pagarme_json['status']
+        if current_status == REFUSED:
+            return payment, all_payments_items
         item_prices_sum = sum(payment_item.price for payment_item in all_payments_items)
         pagarme_authorized_amount = payment.amount
         if item_prices_sum > payment.amount:
