@@ -118,7 +118,7 @@ Ex:
     {% endfor %}
 </ul>
 <button class="pay-button">Abrir modal de pagamento</button>
-{% show_pagarme payment_item customer open_modal %}
+{% show_pagarme payment_item customer address open_modal %}
 
 </body>
 </html>
