@@ -73,6 +73,16 @@ class PagarmeItemConfig(models.Model):
     price = models.PositiveIntegerField('Preço em Centavos')
     tangible = models.BooleanField('Produto físico?')
     default_config = models.ForeignKey(PagarmeFormConfig, on_delete=models.CASCADE, related_name='payment_items')
+    upsell = models.ForeignKey('self', on_delete=models.DO_NOTHING, null=True, default=None, blank=True)
+
+    def to_dict(self, quantity=1):
+        return {
+            'id': self.slug,
+            'title': self.name,
+            'quantity': quantity,
+            'tangible': self.tangible,
+            'unit_price': self.price,
+        }
 
     def __str__(self):
         return self.name
@@ -156,8 +166,6 @@ class PagarmePayment(models.Model):
         """
         dct = self.notifications.order_by('-creation').values('status').first()
         return dct['status']
-
-
 
     @classmethod
     def from_pagarme_transaction(cls, pagarme_json):
@@ -278,6 +286,8 @@ class PagarmeNotification(models.Model):
 
 class UserPaymentProfile(models.Model):
     user = models.OneToOneField(get_user_model(), primary_key=True, on_delete=models.CASCADE)
+
+    card_id = models.CharField(max_length=64, db_index=False, blank=True, null=True, default=None)
     # customer data
     customer_type = models.CharField(max_length=64, db_index=False)
     costumer_country = models.CharField(max_length=64, db_index=False)
@@ -303,23 +313,29 @@ class UserPaymentProfile(models.Model):
         verbose_name_plural = 'Perfis de Pagamento'
 
     def to_customer_dict(self):
+        phone_str = str(self.phone)
         return {
             'external_id': str(self.user_id),
             'type': self.customer_type,
             'country': self.costumer_country,
-            'documents': {
+            'document': {
                 'number': self.document_number,
                 'type': self.document_type,
             },
             'name': self.name,
             'email': self.email,
-            'phone': self.phone,
+            'phone': phone_str,
         }
 
+    def to_customer_api_dict(self):
+        dct = self.to_customer_dict()
+        dct['documents'] = [dct.pop('document')]
+        dct['phone_numbers'] = [dct.pop('phone')]
+        return dct
+
     def to_billing_address_dict(self):
-        return {
+        address = {
             'street': self.street,
-            'complementary': self.complementary,
             'street_number': self.street_number,
             'neighborhood': self.neighborhood,
             'city': self.city,
@@ -327,6 +343,12 @@ class UserPaymentProfile(models.Model):
             'zipcode': self.zipcode,
             'country': self.address_country,
         }
+        if self.complementary:
+            address['complementary'] = self.complementary
+        return address
+
+    def to_billing_dict(self):
+        return {'name': self.name, 'address': self.to_billing_address_dict()}
 
     @classmethod
     def from_pagarme_dict(cls, django_user_id, pagarme_transaction):
@@ -339,6 +361,8 @@ class UserPaymentProfile(models.Model):
         customer = pagarme_transaction['customer']
         document = customer['documents'][-1]
         address = pagarme_transaction['billing']['address']
+        card = pagarme_transaction.get('card')
+        card_id = None if card is None else card.get('id')
         return cls(
             user_id=django_user_id,
             customer_type=customer['type'],
@@ -355,4 +379,6 @@ class UserPaymentProfile(models.Model):
             city=address['city'],
             state=address['state'],
             zipcode=address['zipcode'],
-            address_country=address['country'])
+            address_country=address['country'],
+            card_id=card_id
+        )

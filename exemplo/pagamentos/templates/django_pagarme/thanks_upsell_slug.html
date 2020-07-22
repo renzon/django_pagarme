@@ -7,10 +7,10 @@
 <body>
 <h1> Obrigado por comprar {{ payment_item_config.name }}</h1>
 {% if payment_item_config.upsell %}
-<form action="{% url 'django_pagarme:one_click' slug=payment_item_config.upsell.slug %}" method="post">
-{% csrf_token %}
-<button type="submit"> Comprar {{ payment_item_config.upsell.name }}</button>
-</form>
+    <form action="{% url 'django_pagarme:one_click' slug=payment_item_config.upsell.slug %}" method="post">
+        {% csrf_token %}
+        <button type="submit"> Comprar {{ payment_item_config.upsell.name }}</button>
+    </form>
 {% endif %}
 </body>
 </html>

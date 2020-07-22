@@ -87,14 +87,19 @@ def test_logged_user_payment_customer_data(resp_with_user, logged_user):
         'external_id': str(logged_user.id),
         'type': CUSTOMER_TYPE,
         'country': COSTUMER_COUNTRY,
-        'documents': {
+        'document': {
             'number': DOCUMENT_NUMBER,
             'type': DOCUMENT_TYPE,
         },
         'name': logged_user.first_name,
         'email': logged_user.email,
-        'phone': PHONE.replace('+', ''),
+        'phone': PHONE,
     }
+
+
+def test_logged_user_card_id(resp_with_user, logged_user):
+    profile: UserPaymentProfile = facade.get_user_payment_profile(logged_user)
+    assert profile.card_id == CARD_ID
 
 
 def test_logged_user_payment_billing_address_data(resp_with_user, logged_user):
@@ -165,6 +170,8 @@ COSTUMER_COUNTRY = 'br'
 DOCUMENT_NUMBER = '123456789'
 DOCUMENT_TYPE = 'cpf'
 PHONE = '+5512999999999'
+
+CARD_ID = 'card_ck5n7vtbi010or36dojq96sb1'
 
 
 @pytest.fixture
@@ -253,7 +260,12 @@ def transaction_json(payment_item: PagarmeItemConfig, logged_user):
             'venue': None,
             'date': None
         }],
-        'card': None,
+        'card': {
+            'object': 'card', 'id': CARD_ID, 'date_created': '2020-01-21T01:45:57.294Z',
+            'date_updated': '2020-01-21T01:45:57.789Z', 'brand': 'visa', 'holder_name': 'agora captura',
+            'first_digits': '411111', 'last_digits': '1111', 'country': 'UNITED STATES',
+            'fingerprint': 'cj5bw4cio00000j23jx5l60cq', 'valid': True, 'expiration_date': '1227'
+        },
         'split_rules': None,
         'metadata': {},
         'antifraud_metadata': {},
@@ -360,7 +372,12 @@ def captured_json(payment_item: PagarmeItemConfig, logged_user):
             'venue': None,
             'date': None
         }],
-        'card': None,
+        'card': {
+            'object': 'card', 'id': CARD_ID, 'date_created': '2020-01-21T01:45:57.294Z',
+            'date_updated': '2020-01-21T01:45:57.789Z', 'brand': 'visa', 'holder_name': 'agora captura',
+            'first_digits': '411111', 'last_digits': '1111', 'country': 'UNITED STATES',
+            'fingerprint': 'cj5bw4cio00000j23jx5l60cq', 'valid': True, 'expiration_date': '1227'
+        },
         'split_rules': None,
         'metadata': {},
         'antifraud_metadata': {},

@@ -26,8 +26,8 @@
             amount: {{payment_item.price}},
             buttonText: 'Pagar',
             buttonClass: 'botao-pagamento',
-            customerData: 'true',
-            reviewInformations: 'true',
+            customerData: {% if review_informations %}'true'{% else %}'false'{% endif %},
+            reviewInformations: {% if review_informations %}'true'{% else %}'false'{% endif %},
             createToken: 'true',
             postback_url: '{{postback_url}}',
             paymentMethods: '{{payment_item.default_config.payments_methods}}',
@@ -52,10 +52,9 @@
                     email: '{{customer.email}}',
                     type: '{{ customer.type }}',
                     country: '{{customer.country}}',
-                    birthday: '1982-09-02',
                     documents: [{
-                        type: '{{customer.documents.type}}',
-                        number: '{{customer.documents.number}}'
+                        type: '{{customer.document.type}}',
+                        number: '{{customer.document.number}}'
                     }]{% if customer.phone %},
                         phone_numbers: ['{{customer.phone}}']
                     {% endif %}
