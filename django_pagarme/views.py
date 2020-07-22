@@ -3,6 +3,7 @@ from logging import Logger
 
 from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseNotAllowed
 from django.shortcuts import redirect, render
+from django.template import TemplateDoesNotExist
 from django.urls import reverse
 from django.utils.http import urlencode
 from django.views.decorators.csrf import csrf_exempt
@@ -62,7 +63,23 @@ def capture(request, slug, token):
 
 def thanks(request, slug):
     ctx = {'payment_item_config': facade.find_payment_item_config(slug)}
-    return render(request, 'django_pagarme/thanks.html', ctx)
+    suffix = slug.replace('-', '_')
+    try:
+        return render(request, f'django_pagarme/thanks_{suffix}.html', ctx)
+    except TemplateDoesNotExist:
+        return render(request, 'django_pagarme/thanks.html', ctx)
+
+
+def one_click(request, slug):
+    if request.method != 'POST':
+        return redirect(reverse('django_pagarme:pagarme', kwargs={'slug': slug}))
+    try:
+        facade.one_click_buy(slug, request.user)
+    except Exception:
+        path = reverse('django_pagarme:pagarme', kwargs={'slug': slug})
+        return redirect(f'{path}?open_modal=true&review_informations=false')
+    else:
+        return redirect(reverse('django_pagarme:thanks', kwargs={'slug': slug}))
 
 
 @csrf_exempt
@@ -86,6 +103,7 @@ def notification(request, slug):
 
 def pagarme(request, slug):
     open_modal = request.GET.get('open_modal', '').lower() == 'true'
+    review_informations = not (request.GET.get('review_informations', '').lower() == 'false')
     customer_qs_data = {k: request.GET.get(k, '') for k in ['name', 'email', 'phone']}
     customer_qs_data = {k: v for k, v in customer_qs_data.items() if v}
     user = request.user
@@ -104,6 +122,7 @@ def pagarme(request, slug):
     ctx = {
         'payment_item': facade.get_payment_item(slug),
         'open_modal': open_modal,
+        'review_informations': review_informations,
         'customer': customer,
         'slug': slug,
         'address': address

@@ -3,6 +3,7 @@ from typing import Callable, List
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import transaction as django_transaction
+from django.urls import reverse
 from pagarme import postback, transaction, authentication_key
 
 from django_pagarme.forms import ContactForm
@@ -322,3 +323,31 @@ def add_payment_status_changed(listener: Callable):
     """
 
     return _payment_status_changed_listeners.append(listener)
+
+
+def one_click_buy(payment_item_config_slug: PagarmeItemConfig, user):
+    """
+    Create Transaction
+    https://docs.pagar.me/reference#criar-transacao
+    """
+    item = get_payment_item(payment_item_config_slug)
+    form_config = item.default_config
+    profile = get_user_payment_profile(user)
+    domain = settings.ALLOWED_HOSTS[0]
+    notification_path = reverse('django_pagarme:notification', kwargs={'slug': item.slug})
+    postback_url = f'https://{domain}{notification_path}',
+    payment_data = {
+        'amount': item.price,
+        'card_id': profile.card_id,
+        'payment_method': 'credit_card',
+        'postback_url': postback_url,
+        'async': False,
+        'installments': form_config.max_installments,
+        'soft_descriptor': 'pythopro',
+        'capture': True,
+        'customer': profile.to_customer_api_dict(),
+        'billing': profile.to_billing_dict(),
+        'items': [item.to_dict()]
+    }
+
+    return transaction.create(payment_data)

@@ -161,7 +161,7 @@ def resp_logged_user_with_payment_profile(client, payment_item, logged_user, pay
 
 
 def test_payment_profile_precedes_logged_user(resp_logged_user_with_payment_profile, payment_profile: UserPaymentProfile):
-    assert_contains(resp_logged_user_with_payment_profile, payment_profile.phone)
+    assert_contains(resp_logged_user_with_payment_profile, str(payment_profile.phone))
     assert_contains(resp_logged_user_with_payment_profile, payment_profile.name)
     assert_contains(resp_logged_user_with_payment_profile, payment_profile.document_number)
     assert_contains(resp_logged_user_with_payment_profile, payment_profile.document_type)

@@ -118,7 +118,7 @@ Ex:
     {% endfor %}
 </ul>
 <button class="pay-button">Abrir modal de pagamento</button>
-{% show_pagarme payment_item customer address open_modal %}
+{% show_pagarme payment_item customer address open_modal review_informations %}
 
 </body>
 </html>
@@ -162,9 +162,19 @@ Ex:
 </head>
 <body>
 <h1> Obrigado por comprar {{ payment_item_config.name }}</h1>
+{% if payment_item_config.upsell %}
+    <form action="{% url 'django_pagarme:one_click' slug=payment_item_config.upsell.slug %}" method="post">
+    {% csrf_token %}
+    <button type="submit"> Comprar {{ payment_item_config.upsell.name }}</button>
+    </form>
+{% endif %}
 </body>
 </html>
 ```
+
+Você também pode criar uma página de obrigado específica para cada produto. 
+Suponha um produto com slug 'curso-avancado'. A view de obrigado irá tentar então renderizar
+o template `django_pagarme/thank_curso_avançado.html`. Dessa maneira vc pode customizar dados de acordo com o produto vendido.
 
 
 
@@ -275,6 +285,10 @@ Nome do pagarme
 Preço em Centavos
 Se o pagarme é físico ou não
 Opção padrão de pagamento
+Upsell
+
+Esse úlitmo é um relacionamento para outros  produtos, afim de se tentar fazer processo de upsell logo após o pagamento de um produto.
+
 
 Segue exemplo de um curso chamado Pytools custando R$ 97.00
 
@@ -289,7 +303,6 @@ No admin ainda existem 4 classes de interesse:
 1. PagarmePayment : reprensenta um pagamento (transction) do pagarme
 1. PagarmeNotification: representa uma notificacão do pagarme. Um pagamento pode possuir múltiplas notificações  
 1. UserPaymentProfile: representa dados gerais preenchidos no último checkout feito no pagarme. É usado para preencher os dados em um próximo pagamento e está relacioando com o usuário Django.
-1.    
 
 
 Um exemplo completo de aplicação se encontra no diretório `exemplo`
@@ -331,7 +344,7 @@ python -m pip install pipenv
 Navegue até a pasta exemplo e rode:
 
 ```
-pipenv sync
+pipenv sync -d
 ```
 
 Rode o servidor local:
