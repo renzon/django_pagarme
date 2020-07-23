@@ -3,7 +3,7 @@ import responses
 from django.urls import reverse
 from model_bakery import baker
 
-from django_assertions import assert_contains
+from django_assertions import assert_contains, assert_templates_used, assert_templates_not_used
 from django_pagarme import facade
 from django_pagarme.models import PagarmeFormConfig, PagarmeItemConfig, PagarmePayment
 
@@ -22,9 +22,21 @@ def payment_config(db):
 
 
 @pytest.fixture
-def payment_item(payment_config):
+def upsell_item(payment_config):
     return baker.make(
         PagarmeItemConfig,
+        slug='upsell-item',
+        tangible=False,
+        default_config=payment_config
+    )
+
+
+@pytest.fixture
+def payment_item(payment_config, upsell_item):
+    return baker.make(
+        PagarmeItemConfig,
+        upsell=upsell_item,
+        slug='paytment-item',
         tangible=False,
         default_config=payment_config
     )
@@ -46,6 +58,23 @@ def resp(client, pagarme_responses, payment_item):
 
 def test_status_code(resp, payment_item):
     assert resp.status_code == 200
+
+
+def test_downsell_link_present(resp, payment_item, upsell_item):
+    assert_contains(resp, reverse('django_pagarme:one_click', kwargs={'slug': upsell_item.slug}))
+
+
+def test_downsell_fall_back_template(resp, payment_item, upsell_item):
+    assert_templates_used(resp, 'django_pagarme/show_boleto_data.html')
+    assert_templates_not_used(resp, 'django_pagarme/show_boleto_data_paytment_item.html')
+
+
+def test_downsell_slug_template(client, pagarme_responses, upsell_item):
+    path = reverse('django_pagarme:capture', kwargs={'token': TOKEN, 'slug': upsell_item.slug})
+    resp = client.get(path)
+
+    assert_templates_not_used(resp, 'django_pagarme/show_boleto_data.html')
+    assert_templates_used(resp, 'django_pagarme/show_boleto_data_upsell_item.html')
 
 
 def test_success_boleto_data(resp):
