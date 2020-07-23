@@ -33,8 +33,8 @@ def payment_item(payment_config):
 @pytest.fixture
 def pagarme_responses(transaction_json, captured_json):
     with responses.RequestsMock() as rsps:
-        rsps.add(responses.GET, f'https://api.pagar.me/1/transactions/{TOKEN}', json=transaction_json)
-        rsps.add(responses.POST, f'https://api.pagar.me/1/transactions/{TOKEN}/capture', json=captured_json)
+        rsps.add(responses.GET, f'https://api.pagar.me/1/transactions/{TRANSACTION_ID}', json=transaction_json)
+        rsps.add(responses.POST, f'https://api.pagar.me/1/transactions/{TRANSACTION_ID}/capture', json=captured_json)
         yield rsps
 
 
@@ -44,7 +44,7 @@ def resp_no_user(client, pagarme_responses, payment_item):
         raise facade.ImpossibleUserCreation()
 
     facade.set_user_factory(factory)
-    yield client.get(reverse('django_pagarme:capture', kwargs={'token': TOKEN, 'slug': payment_item.slug}))
+    yield client.get(reverse('django_pagarme:capture', kwargs={'token': TRANSACTION_ID, 'slug': payment_item.slug}))
     facade.set_user_factory(facade._default_factory)
 
 
@@ -70,7 +70,8 @@ def client_with_user(logged_user, client: Client):
 
 @pytest.fixture
 def resp_with_user(client_with_user, pagarme_responses, payment_item):
-    return client_with_user.post(reverse('django_pagarme:capture', kwargs={'token': TOKEN, 'slug': payment_item.slug}))
+    return client_with_user.post(
+        reverse('django_pagarme:capture', kwargs={'token': TRANSACTION_ID, 'slug': payment_item.slug}))
 
 
 def test_logged_user_payment_saved(resp_with_user, logged_user):
@@ -127,7 +128,7 @@ def resp_user_factory(client, pagarme_responses, logged_user, captured_json, tra
 
     facade.set_user_factory(factory)
 
-    yield client.get(reverse('django_pagarme:capture', kwargs={'token': TOKEN, 'slug': payment_item.slug}))
+    yield client.get(reverse('django_pagarme:capture', kwargs={'token': TRANSACTION_ID, 'slug': payment_item.slug}))
     # returning factory to original function
     facade._user_factory = facade._default_factory
 
@@ -141,7 +142,8 @@ def test_user_factory_profile_creation(resp_user_factory, logged_user):
 @pytest.fixture
 def resp_after_first_purchase(client_with_user, pagarme_responses, logged_user, payment_item):
     baker.make(UserPaymentProfile, user_id=logged_user.id, phone='5599888888888')
-    return client_with_user.post(reverse('django_pagarme:capture', kwargs={'token': TOKEN, 'slug': payment_item.slug}))
+    return client_with_user.post(
+        reverse('django_pagarme:capture', kwargs={'token': TRANSACTION_ID, 'slug': payment_item.slug}))
 
 
 def test_user_payment_profile_update_with_last_data(resp_after_first_purchase, logged_user):

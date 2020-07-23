@@ -56,11 +56,22 @@ def list_payment_item_configs() -> List[PagarmeItemConfig]:
     return list(PagarmeItemConfig.objects.filter().all())
 
 
+class TokenDifferentFromTransactionIdxception(Exception):
+    def __init__(self, token, transaction_id) -> None:
+        super().__init__()
+        self.transaction_id = transaction_id
+        self.token = token
+
+
 def capture(token: str, django_user_id=None) -> PagarmePayment:
     pagarme_transaction = transaction.find_by_id(token)
+    transaction_id = pagarme_transaction['id']
+    if str(transaction_id) != token:
+        raise TokenDifferentFromTransactionIdxception(token, transaction_id)
     try:
-        payment = find_payment_by_transaction(pagarme_transaction['id'])
-        all_payments_items, _ = payment.payments_items_from_pagarme_json(pagarme_transaction)
+        payment = find_payment_by_transaction(transaction_id)
+        if payment.status() != AUTHORIZED:  # only status capturing makes sense
+            return payment
     except PagarmePayment.DoesNotExist:
         payment, all_payments_items = PagarmePayment.from_pagarme_transaction(pagarme_transaction)
         if django_user_id is None:

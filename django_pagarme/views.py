@@ -53,6 +53,11 @@ def capture(request, slug, token):
     except facade.PaymentViolation as e:
         logger.exception(str(e))
         return HttpResponseBadRequest()
+    except facade.TokenDifferentFromTransactionIdxception as e:
+        return redirect(
+            reverse('django_pagarme:capture', kwargs={'slug': slug, 'token': e.transaction_id}),
+            permanent=True
+        )
     else:
         if payment.payment_method == facade.BOLETO:
             ctx = {'payment': payment, 'upsell': facade.get_payment_item(slug).upsell}
