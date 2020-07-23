@@ -16,7 +16,6 @@ def pagarme_payment(db):
 @pytest.mark.parametrize(
     'status',
     [
-        facade.AUTHORIZED,
         facade.PAID,
         facade.PENDING_REFUND,
         facade.REFUNDED,
