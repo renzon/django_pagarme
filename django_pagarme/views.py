@@ -55,8 +55,12 @@ def capture(request, slug, token):
         return HttpResponseBadRequest()
     else:
         if payment.payment_method == facade.BOLETO:
-            ctx = {'payment': payment}
-            return render(request, 'django_pagarme/show_boleto_data.html', ctx)
+            ctx = {'payment': payment, 'upsell': facade.get_payment_item(slug).upsell}
+            suffix = slug.replace('-', '_')
+            try:
+                return render(request, f'django_pagarme/show_boleto_data_{suffix}.html', ctx)
+            except TemplateDoesNotExist:
+                return render(request, 'django_pagarme/show_boleto_data.html', ctx)
         else:
             return redirect(reverse('django_pagarme:thanks', kwargs={'slug': slug}))
 

@@ -139,12 +139,24 @@ Ex:
     <title>Dados do Boleto</title>
 </head>
 <body>
-    <h1>Dados do Boleto</h1>
-    <p>Código de Barras: {{ payment.boleto_barcode }}</p>
-    <iframe src="{{ payment.boleto_url }}"></iframe>
+<h1>Dados do Boleto</h1>
+<p>Código de Barras: {{ payment.boleto_barcode }}</p>
+<iframe src="{{ payment.boleto_url }}"></iframe>
+{% if upsell %}
+    <form action="{% url 'django_pagarme:one_click' slug=upsell.slug %}" method="post">
+        {% csrf_token %}
+        <button type="submit"> Comprar {{ upsell.name }}</button>
+    </form>
+{% endif %}
+
 </body>
 </html>
 ```
+
+Você também pode criar uma página de boleto específica para cada produto. 
+Suponha um produto com slug 'curso-avancado'. A view de captura irá tentar então renderizar
+o template `django_pagarme/show_boleto_data_curso_avancado.html`. Dessa maneira vc pode customizar dados de acordo com o produto vendido.
+
 
 ### Página de obrigado
 
@@ -174,7 +186,7 @@ Ex:
 
 Você também pode criar uma página de obrigado específica para cada produto. 
 Suponha um produto com slug 'curso-avancado'. A view de obrigado irá tentar então renderizar
-o template `django_pagarme/thank_curso_avançado.html`. Dessa maneira vc pode customizar dados de acordo com o produto vendido.
+o template `django_pagarme/thank_curso_avancado.html`. Dessa maneira vc pode customizar dados de acordo com o produto vendido.
 
 
 
