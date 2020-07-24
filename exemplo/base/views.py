@@ -34,6 +34,13 @@ def print_payment_id(payment_id):
 facade.add_payment_status_changed(print_payment_id)
 
 
+def debug_qs_strategy(pagarme_item_config, request):
+    return pagarme_item_config.is_available() or request.GET.get('debug', False)
+
+
+facade.set_available_payment_config_item_strategy(debug_qs_strategy)
+
+
 def home(request):
     ctx = {'payment_items': facade.list_payment_item_configs()}
     return render(request, 'home.html', ctx)

@@ -23,7 +23,7 @@ def active_payment_item_config(payment_config):
         PagarmeItemConfig,
         tangible=False,
         default_config=payment_config,
-        deleted_at=None
+        available_until=None
     )
 
 

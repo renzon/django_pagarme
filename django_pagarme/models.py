@@ -75,7 +75,7 @@ class PagarmeItemConfig(models.Model):
     tangible = models.BooleanField('Produto físico?')
     default_config = models.ForeignKey(PagarmeFormConfig, on_delete=models.CASCADE, related_name='payment_items')
     upsell = models.ForeignKey('self', on_delete=models.DO_NOTHING, null=True, default=None, blank=True)
-    deleted_at = models.DateTimeField('Desativado em', default=None, null=True, blank=True)
+    available_until = models.DateTimeField('Desativado em', default=None, null=True, blank=True)
 
     def to_dict(self, quantity=1):
         return {
@@ -113,9 +113,9 @@ class PagarmeItemConfig(models.Model):
         return reverse('django_pagarme:pagarme', kwargs={'slug': self.slug})
 
     def is_available(self):
-        if self.deleted_at is None:
+        if self.available_until is None:
             return True
-        return timezone.now() <= self.deleted_at
+        return timezone.now() <= self.available_until
 
 
 class PaymentViolation(Exception):

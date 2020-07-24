@@ -8,7 +8,7 @@ from django_pagarme.models import (
 
 @admin.register(PagarmeItemConfig)
 class PagarmeItemConfigAdmin(admin.ModelAdmin):
-    list_display = ('name', 'slug', 'price', 'tangible', 'default_config', 'contact_form', 'checkout', 'deleted_at')
+    list_display = ('name', 'slug', 'price', 'tangible', 'default_config', 'contact_form', 'checkout', 'available_until')
     list_filter = ('default_config',)
     prepopulated_fields = {'slug': ('name',)}
 
