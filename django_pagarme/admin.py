@@ -8,7 +8,7 @@ from django_pagarme.models import (
 
 @admin.register(PagarmeItemConfig)
 class PagarmeItemConfigAdmin(admin.ModelAdmin):
-    list_display = ('name', 'slug', 'price', 'tangible', 'default_config', 'contact_form', 'checkout')
+    list_display = ('name', 'slug', 'price', 'tangible', 'default_config', 'contact_form', 'checkout', 'deleted_at')
     list_filter = ('default_config',)
     prepopulated_fields = {'slug': ('name',)}
 
@@ -21,6 +21,9 @@ class PagarmeItemConfigAdmin(admin.ModelAdmin):
         return mark_safe(f'<a href="{pagarme_item_config.get_checkout_url()}">Checkout</a>')
 
     checkout.short_description = 'checkout'
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(PagarmeFormConfig)
