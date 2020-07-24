@@ -279,7 +279,8 @@ def validate_and_inform_contact_info(name, email, phone, payment_item_slug, user
 
 def get_user_payment_profile(django_user_or_id) -> UserPaymentProfile:
     """
-    Get django user payment profile. Useful to avoid input of customer and billing address data on payment form when user
+    Get django user payment profile. Useful to avoid input of customer and billing address data on payment
+    form when user
     decides buying for a second time
     :param django_user_or_id: Django user or his id
     :return: UserPaymentProfile

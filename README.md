@@ -188,7 +188,23 @@ Você também pode criar uma página de obrigado específica para cada produto.
 Suponha um produto com slug 'curso-avancado'. A view de obrigado irá tentar então renderizar
 o template `django_pagarme/thank_curso_avancado.html`. Dessa maneira vc pode customizar dados de acordo com o produto vendido.
 
+## Página de produto indisponível
 
+Você deve criar o template que é exibido quando um Item de Pagamento não está disponível.
+O template deve se chamar `unavailable_payment_item.html`. Exemplo:
+
+```
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Produto {{ payment_item_config.name }} indisponível</title>
+</head>
+<body>
+<h1> Desculpa, mas o produto {{ payment_item_config.name }} não está mais disponível.</h1>
+</body>
+</html>
+```
 
 ## Listeners
 

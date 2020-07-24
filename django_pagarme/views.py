@@ -16,6 +16,9 @@ logger = Logger(__file__)
 
 
 def contact_info(request, slug):
+    payment_item = facade.get_payment_item(slug)
+    if not payment_item.is_available():
+        return redirect(reverse('django_pagarme:unavailable', kwargs={'slug': slug}))
     if request.method == 'GET':
         user = request.user
         if user.is_authenticated:
@@ -111,6 +114,9 @@ def notification(request, slug):
 
 
 def pagarme(request, slug):
+    payment_item = facade.get_payment_item(slug)
+    if not payment_item.is_available():
+        return redirect(reverse('django_pagarme:unavailable', kwargs={'slug': slug}))
     open_modal = request.GET.get('open_modal', '').lower() == 'true'
     review_informations = not (request.GET.get('review_informations', '').lower() == 'false')
     customer_qs_data = {k: request.GET.get(k, '') for k in ['name', 'email', 'phone']}
@@ -129,7 +135,7 @@ def pagarme(request, slug):
     else:
         customer = customer_qs_data
     ctx = {
-        'payment_item': facade.get_payment_item(slug),
+        'payment_item': payment_item,
         'open_modal': open_modal,
         'review_informations': review_informations,
         'customer': customer,
@@ -137,3 +143,8 @@ def pagarme(request, slug):
         'address': address
     }
     return render(request, 'django_pagarme/pagarme.html', ctx)
+
+
+def unavailable(request, slug):
+    payment_item = facade.get_payment_item(slug)
+    return render(request, 'django_pagarme/unavailable_payment_item.html', {'payment_item_config': payment_item})
