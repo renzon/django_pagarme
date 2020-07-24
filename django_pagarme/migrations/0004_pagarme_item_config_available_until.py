@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AddField(
             model_name='pagarmeitemconfig',
-            name='deleted_at',
+            name='available_until',
             field=models.DateTimeField(blank=True, default=None, null=True, verbose_name='Desativado em'),
         ),
     ]

@@ -363,3 +363,15 @@ def one_click_buy(payment_item_config_slug: PagarmeItemConfig, user):
     }
 
     return transaction.create(payment_data)
+
+
+def is_payment_config_item_available(payment_item_config: PagarmeItemConfig, request) -> bool:
+    """
+    Global var that can be overwitten by user. Must return True if config item is available and False otherwise
+    """
+    return payment_item_config.is_available()
+
+
+def set_available_payment_config_item_strategy(strategy: Callable):
+    global is_payment_config_item_available
+    is_payment_config_item_available = strategy

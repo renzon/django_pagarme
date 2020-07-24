@@ -17,7 +17,7 @@ logger = Logger(__file__)
 
 def contact_info(request, slug):
     payment_item = facade.get_payment_item(slug)
-    if not payment_item.is_available():
+    if not facade.is_payment_config_item_available(payment_item, request):
         return redirect(reverse('django_pagarme:unavailable', kwargs={'slug': slug}))
     if request.method == 'GET':
         user = request.user
@@ -115,7 +115,7 @@ def notification(request, slug):
 
 def pagarme(request, slug):
     payment_item = facade.get_payment_item(slug)
-    if not payment_item.is_available():
+    if not facade.is_payment_config_item_available(payment_item, request):
         return redirect(reverse('django_pagarme:unavailable', kwargs={'slug': slug}))
     open_modal = request.GET.get('open_modal', '').lower() == 'true'
     review_informations = not (request.GET.get('review_informations', '').lower() == 'false')

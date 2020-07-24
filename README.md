@@ -287,7 +287,25 @@ WAITING_PAYMENT = 'waiting_payment'
 REFUSED = 'refused'
 ```
 
+## Controlando disponibilidade de Produtos
 
+Você pode controlar a disponibilidade de prodututos através da propriedade `available_until` no admin do modelo `PagarmeItemConfig`.
+Basta setar uma data a partir do qual o produto ficará indisponível.
+
+Se precisar de mais flexibilidade, você pode definir uma estratégia específica.
+Para, crie um chamável que recebe a configuração e a requesição web e retornar verdadeiro se o produto está disponível,
+falso caso contrário. Exemplo:
+
+```
+def is_payment_config_item_available(payment_item_config: PagarmeItemConfig, request) -> bool:
+    return payment_item_config.is_available()
+
+
+facade.set_available_payment_config_item_strategy(sua_estrategia)
+```
+ 
+IMPORTANTE: O comportamento da sua stratégia sobrescreve a lógica do atributo available_until. Portanto, você deve utilizar
+o método `payment_item_config.is_available()` em sua estratégia caso queira que o atributo continua efetivo.
 
 ### Configuração de Pagamento
 
