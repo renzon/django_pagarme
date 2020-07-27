@@ -19,7 +19,7 @@ pip install django_pagarme
 
 Configure seu settings.py
 
-```
+```python
 INSTALLED_APPS = [
     'django_pagarme',
     'phonenumber_field',
@@ -55,7 +55,7 @@ urlpatterns = [
 
 ## Personalize seus formulários
 
-Cria uma app e no diretório de templates, crie suas páginas como descrito abaixo.
+Crie uma app e no diretório de templates, crie suas páginas como descrito abaixo.
 
 ### Dados de Contato
 
@@ -160,7 +160,7 @@ o template `django_pagarme/show_boleto_data_curso_avancado.html`. Dessa maneira 
 
 ### Página de obrigado
 
-Página onde o usuário é levado ao finalizar o pagamento
+Página para onde o usuário é levado ao finalizar o pagamento
  
 Template `django_pagarme/thanks.html`
 
@@ -193,7 +193,7 @@ o template `django_pagarme/thank_curso_avancado.html`. Dessa maneira vc pode cus
 Você deve criar o template que é exibido quando um Item de Pagamento não está disponível.
 O template deve se chamar `unavailable_payment_item.html`. Exemplo:
 
-```
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -208,7 +208,7 @@ O template deve se chamar `unavailable_payment_item.html`. Exemplo:
 
 ## Listeners
 
-O biblioteca dispo de 2 listener para ouvir eventos e também da configuração de criação de usuário.
+A biblioteca dispõe de uma série de listeners, que podem ser usados para tratar mudanças no status do pagamento, configuração da criação de usuário e controle de disponibilidade dos itens de pagamento.
 
 ### Listener de Contato de usuário
 
@@ -217,6 +217,8 @@ Chamável utilizado para receber os dados do usuário
 Ex:
 ```python
 from django_pagarme import facade
+
+
 def print_contact_info(name, email, phone, payment_item_slug, user=None):
     print('Contact Data:', name, email, phone, payment_item_slug, user)
 
@@ -224,11 +226,11 @@ def print_contact_info(name, email, phone, payment_item_slug, user=None):
 facade.add_contact_info_listener(print_contact_info)
 ```
 
-Essa função pode ser usada para armazenar os dados em banco, ou chamar uma api depois que o usuário preenche os dados de contato.
+Essa função pode ser usada para armazenar os dados em banco ou chamar uma api depois que o usuário preenche os dados de contato.
 
 ### Fábrica de usuário
 
-Chamável utilizado para gerar um usuário para ser conectado ao pedido.
+Chamável utilizado para criar um usuário para ser conectado ao pedido.
 Só é chamado se não houver usuário logado. Se não for setado, pedidos ainda serão
 feitos corretamente, mas sem link com qualquer usuário do sistema.
 
@@ -239,27 +241,24 @@ from django.contrib.auth import get_user_model
 
 
 def user_factory(pagarme_transaction):
-    User = get_user_model()
     customer = pagarme_transaction['customer']
-    try:
-        return User.objects.get(email=customer['email'])
-    except User.DoesNotExist:
-        return User.objects.create(
-            first_name=customer['name'],
-            email=customer['email']
-        )
+    User = get_user_model()
+
+    User.objects.get_or_create(
+        email=customer['email'],
+        defaults={'first_name': customer['name']}
+    )
 
 
 facade.set_user_factory(user_factory)
-
 ```
 
 ### Listener de mudanças de status
 
-Toda vez que o sistema recebe notificação de mudança de status, esse chamável
-é executado e recebe o id do respectivo pagamento.
+Toda vez que o sistema recebe uma notificação de mudança de status, esse chamável
+é executado e recebe como parâmetro o id do respectivo pagamento.
 
-Pode ser utilizado para ativa um usuário na base, ou enviar o produto, de acordo
+Pode ser utilizado para ativar um usuário na base ou enviar o produto, de acordo
 com o status.
 
 Ex:
@@ -287,24 +286,24 @@ WAITING_PAYMENT = 'waiting_payment'
 REFUSED = 'refused'
 ```
 
-## Controlando disponibilidade de Produtos
+## Controlando disponibilidade dos itens de pagamento
 
-Você pode controlar a disponibilidade de prodututos através da propriedade `available_until` no admin do modelo `PagarmeItemConfig`.
+Você pode controlar a disponibilidade dos itens através da propriedade `available_until` no admin do modelo `PagarmeItemConfig`.
 Basta setar uma data a partir do qual o produto ficará indisponível.
 
 Se precisar de mais flexibilidade, você pode definir uma estratégia específica.
-Para, crie um chamável que recebe a configuração e a requesição web e retornar verdadeiro se o produto está disponível,
-falso caso contrário. Exemplo:
+Para isso, crie um chamável que recebe a configuração e a requisição web como parâmetros e retorne verdadeiro caso o produto esteja disponível, falso caso contrário. 
 
-```
-def is_payment_config_item_available(payment_item_config: PagarmeItemConfig, request) -> bool:
+Ex:
+```python
+def is_payment_config_item_available(payment_item_config: PagarmeItemConfig, request: HttpRequest) -> bool:
     return payment_item_config.is_available()
 
 
-facade.set_available_payment_config_item_strategy(sua_estrategia)
+facade.set_available_payment_config_item_strategy(is_payment_config_item_available)
 ```
  
-IMPORTANTE: O comportamento da sua stratégia sobrescreve a lógica do atributo available_until. Portanto, você deve utilizar
+IMPORTANTE: O comportamento da sua stratégia sobrescreve a lógica do atributo `available_until`. Portanto, você deve utilizar
 o método `payment_item_config.is_available()` em sua estratégia caso queira que o atributo continua efetivo.
 
 ### Configuração de Pagamento
@@ -312,14 +311,14 @@ o método `payment_item_config.is_available()` em sua estratégia caso queira qu
 As configurações ficam disponíveis via admin do django. Você pode criar várias.
 Cada uma deve conter as configurações básicas de pagamento:
 
-Um nome para identificar a opção
-Número máximo de parcelas
-Escolha padrão do número parcelas que vai aparecer no formulário
-Número máximo de parcelas sem juros
-Taxa de juros
-Método de pagamento: Cartão, Boleto ou ambos.
+- Um nome para identificar a opção
+- Número máximo de parcelas
+- Escolha padrão do número parcelas que vai aparecer no formulário
+- Número máximo de parcelas sem juros
+- Taxa de juros
+- Método de pagamento: Cartão, Boleto ou ambos.
 
-Segue exemplo:
+Segue o exemplo:
 
 ![Admin de Opções de Pagamento](./documentation/imgs/PaymentFormConfig.png?raw=true)
 
@@ -327,11 +326,11 @@ Segue exemplo:
 
 Aqui vc configura os produtos que vai vender. Propriedades:
 
-Nome do pagarme
-Preço em Centavos
-Se o pagarme é físico ou não
-Opção padrão de pagamento
-Upsell
+- Nome do pagarme
+- Preço em Centavos
+- Se o pagarme é físico ou não
+- Opção padrão de pagamento
+- Upsell
 
 Esse úlitmo é um relacionamento para outros  produtos, afim de se tentar fazer processo de upsell logo após o pagamento de um produto.
 
