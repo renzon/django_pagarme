@@ -142,7 +142,11 @@ def pagarme(request, slug):
         'slug': slug,
         'address': address
     }
-    return render(request, 'django_pagarme/pagarme.html', ctx)
+    suffix = slug.replace('-', '_')
+    try:
+        return render(request, f'django_pagarme/pagarme_{suffix}.html', ctx)
+    except TemplateDoesNotExist:
+        return render(request, 'django_pagarme/pagarme.html', ctx)
 
 
 def unavailable(request, slug):
