@@ -93,6 +93,10 @@ Página onde o usuário preenche os dados de pagamento.
  
 Template `django_pagarme/pagarme.html`
 
+Se você quiser customizar a página de boleto para um produto específico, crie um
+template com sufixo do slug do produto. Supondo slug `upsell-item`, o nome do template ficaria `django_pagarme/pagarme_upsell_item.html`
+
+
 Deve ter um elemento clicável com classe css `pay-button`.
 Ao clicar nesse elemento, o checkout é iniciado.
 
@@ -130,6 +134,10 @@ Página onde o usuário acessa os dados do boleto para pagamento
  
 Template `django_pagarme/show_boleto_data.html`
 
+Se você quiser customizar a página de boleto para um produto específico, crie um
+template com sufixo do slug do produto. Supondo slug `upsell-item`, o nome do template ficaria `django_pagarme/show_boleto_data_upsell_item.html`
+
+
 Ex:
 ```html
 <!DOCTYPE html>
@@ -162,7 +170,9 @@ o template `django_pagarme/show_boleto_data_curso_avancado.html`. Dessa maneira 
 
 Página para onde o usuário é levado ao finalizar o pagamento
  
-Template `django_pagarme/thanks.html`
+Template `django_pagarme/thanks.html`. 
+Se você quiser customizar a página de obrigado para um produto específico, crie um
+template com sufixo do slug do produto. Supondo slug `upsell-item`, o nome do template ficaria `django_pagarme/thanks_upsell_item.html`
 
 Ex:
 ```html
@@ -355,7 +365,7 @@ Um exemplo completo de aplicação se encontra no diretório `exemplo`
 
 ## Contribuidores
 
-@renzon
+@walison17, @renzon 
 
 ## Como Contribuir
 

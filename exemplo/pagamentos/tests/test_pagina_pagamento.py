@@ -3,7 +3,7 @@ from django.urls import reverse
 from django.utils.http import urlencode
 from model_bakery import baker
 
-from django_assertions import assert_contains, assert_not_contains
+from django_assertions import assert_contains, assert_not_contains, assert_templates_used, assert_templates_not_used
 from django_pagarme.models import PagarmeFormConfig, PagarmeItemConfig, UserPaymentProfile
 
 
@@ -13,8 +13,13 @@ def payment_config(db):
 
 
 @pytest.fixture
-def payment_item(payment_config):
-    return baker.make(PagarmeItemConfig, default_config=payment_config)
+def upsell_item(payment_config):
+    return baker.make(PagarmeItemConfig, default_config=payment_config, slug='upsell-item')
+
+
+@pytest.fixture
+def payment_item(payment_config, upsell_item):
+    return baker.make(PagarmeItemConfig, default_config=payment_config, slug='payment-item', upsell=upsell_item)
 
 
 @pytest.fixture
@@ -24,6 +29,17 @@ def resp(client, payment_item):
 
 def test_status_code(payment_item: PagarmeItemConfig, resp):
     assert resp.status_code == 200
+
+
+def test_fall_back_template(resp, payment_item, upsell_item):
+    assert_templates_used(resp, 'django_pagarme/pagarme.html')
+    assert_templates_not_used(resp, 'django_pagarme/pagarme_payment_item.html')
+
+
+def test_slug_template(client, upsell_item):
+    resp = client.get(reverse('django_pagarme:pagarme', kwargs={'slug': upsell_item.slug}))
+    assert_templates_not_used(resp, 'django_pagarme/pagarme.html')
+    assert_templates_used(resp, 'django_pagarme/pagarme_upsell_item.html')
 
 
 def test_pagarme_javascript(resp):
@@ -160,10 +176,10 @@ def resp_logged_user_with_payment_profile(client, payment_item, logged_user, pay
     return client.get(path)
 
 
-def test_payment_profile_precedes_logged_user(resp_logged_user_with_payment_profile, payment_profile: UserPaymentProfile):
+def test_payment_profile_precedes_logged_user(resp_logged_user_with_payment_profile,
+                                              payment_profile: UserPaymentProfile):
     assert_contains(resp_logged_user_with_payment_profile, str(payment_profile.phone))
     assert_contains(resp_logged_user_with_payment_profile, payment_profile.name)
     assert_contains(resp_logged_user_with_payment_profile, payment_profile.document_number)
     assert_contains(resp_logged_user_with_payment_profile, payment_profile.document_type)
     assert_contains(resp_logged_user_with_payment_profile, payment_profile.customer_type)
-
