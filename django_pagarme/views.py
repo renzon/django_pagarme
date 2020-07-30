@@ -3,7 +3,6 @@ from logging import Logger
 
 from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseNotAllowed
 from django.shortcuts import redirect, render
-from django.template import TemplateDoesNotExist
 from django.urls import reverse
 from django.utils.http import urlencode
 from django.views.decorators.csrf import csrf_exempt
@@ -65,10 +64,12 @@ def capture(request, slug, token):
         if payment.payment_method == facade.BOLETO:
             ctx = {'payment': payment, 'upsell': facade.get_payment_item(slug).upsell}
             suffix = slug.replace('-', '_')
-            try:
-                return render(request, f'django_pagarme/show_boleto_data_{suffix}.html', ctx)
-            except TemplateDoesNotExist:
-                return render(request, 'django_pagarme/show_boleto_data.html', ctx)
+            templates = [
+                f'django_pagarme/show_boleto_data_{suffix}.html',
+                'django_pagarme/show_boleto_data.html'
+            ]
+
+            return render(request, templates, ctx)
         else:
             return redirect(reverse('django_pagarme:thanks', kwargs={'slug': slug}))
 
@@ -76,10 +77,12 @@ def capture(request, slug, token):
 def thanks(request, slug):
     ctx = {'payment_item_config': facade.find_payment_item_config(slug)}
     suffix = slug.replace('-', '_')
-    try:
-        return render(request, f'django_pagarme/thanks_{suffix}.html', ctx)
-    except TemplateDoesNotExist:
-        return render(request, 'django_pagarme/thanks.html', ctx)
+    templates = [
+       f'django_pagarme/thanks_{suffix}.html',
+       'django_pagarme/thanks.html'
+    ]
+
+    return render(request, templates, ctx)
 
 
 def one_click(request, slug):
@@ -143,10 +146,12 @@ def pagarme(request, slug):
         'address': address
     }
     suffix = slug.replace('-', '_')
-    try:
-        return render(request, f'django_pagarme/pagarme_{suffix}.html', ctx)
-    except TemplateDoesNotExist:
-        return render(request, 'django_pagarme/pagarme.html', ctx)
+    templates = [
+        f'django_pagarme/pagarme_{suffix}.html',
+        'django_pagarme/pagarme.html'
+    ]
+
+    return render(request, templates, ctx)
 
 
 def unavailable(request, slug):
