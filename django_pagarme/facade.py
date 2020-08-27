@@ -347,7 +347,7 @@ def one_click_buy(payment_item_config_slug: PagarmeItemConfig, user):
     profile = get_user_payment_profile(user)
     domain = settings.ALLOWED_HOSTS[0]
     notification_path = reverse('django_pagarme:notification', kwargs={'slug': item.slug})
-    postback_url = f'https://{domain}{notification_path}',
+    postback_url = f'https://{domain}{notification_path}'
     payment_data = {
         'amount': item.price,
         'card_id': profile.card_id,
