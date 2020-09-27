@@ -1,0 +1,16 @@
+{% load django_pagarme %}
+<html>
+<head>
+    <!-- SCRIPT PAGAR.ME -->
+    <title>{{ plan.name }}</title>
+    <script src="//assets.pagar.me/checkout/1.1.0/checkout.js"></script>
+</head>
+<body>
+<h1>{{ plan.name }}</h1>
+<ul>
+    <li>Preço: {{ plan.amount|cents_to_brl }}</li>
+</ul>
+<button class="pay-button">Abrir modal de pagamento</button>
+{% show_pagarme plan=plan customer=customer address=address open_modal=open_modal review_informations=review_informations %}
+</body>
+</html>

@@ -6,6 +6,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.text import slugify
 from phonenumber_field.modelfields import PhoneNumberField
 
 one_year_installments_validators = [MaxValueValidator(12), MinValueValidator(1)]
@@ -125,6 +126,129 @@ class PaymentViolation(Exception):
     pass
 
 
+class Plan(models.Model):
+    name = models.CharField('Nome do plano', max_length=128)
+    slug = models.SlugField(db_index=True, max_length=128)
+    amount = models.PositiveIntegerField('Preço em centavos')
+    days = models.IntegerField('Prazo em dias para cobrança das parcelas')
+    trial_days = models.IntegerField('Dias para teste gratuito do plano', default=0)
+    charges = models.IntegerField('Número de cobranças do plano', null=True, default=None)
+    invoice_reminder = models.IntegerField('Dias para aviso do vencimento do boleto', null=True, blank=True)
+    available_until = models.DateTimeField('Desativado em', default=None, null=True, blank=True)
+    pagarme_id = models.CharField('Id do plano no Pagar.me', max_length=255, null=True, blank=True)
+    payment_methods = models.CharField(
+        'Formas de pagamento',
+        max_length=len('credit_card,boleto'),
+        choices=[
+            (BOLETO, 'Somente Boleto'),
+            (CREDIT_CARD, 'Somente Cartão de Crédito'),
+            (CREDIT_CARD_AND_BOLETO, 'Cartão de Crédito ou Boleto'),
+        ],
+        default='credit_card,boleto'
+    )
+
+    class Meta:
+        verbose_name = 'Plano de assinatura'
+        verbose_name_plural = 'Planos de assinatura'
+
+    def __str__(self):
+        return self.name
+
+    def get_absolute_url(self):
+        return reverse('django_pagarme:subscription', kwargs={'slug': self.slug})
+
+    def is_available(self):
+        if self.available_until is None:
+            return True
+        return timezone.now() <= self.available_until
+
+    def save(self, *args, **kwargs):
+        self.slug = slugify(self.name, allow_unicode=True)
+        super().save(*args, **kwargs)
+
+
+PROCESSING = 'processing'
+AUTHORIZED = 'authorized'
+PAID = 'paid'
+REFUNDED = 'refunded'
+PENDING_REFUND = 'pending_refund'
+WAITING_PAYMENT = 'waiting_payment'
+REFUSED = 'refused'
+TRIALING = 'trialing'
+PENDING_PAYMENT = 'pending_payment'
+ENDED = 'ended'
+UNPAID = 'unpaid'
+CANCELED = 'canceled'
+
+
+class Subscription(models.Model):
+    pagarme_id = models.CharField('Id da assinatura no Pagar.me', max_length=100, unique=True)
+    payment_method = models.CharField(
+        max_length=max(len(CREDIT_CARD), len(BOLETO)),
+        choices=[
+            (BOLETO, 'Boleto'),
+            (CREDIT_CARD, 'Cartão de Crédito'),
+        ],
+    )
+    card_id = models.CharField(max_length=64, null=True, db_index=False)
+    card_last_digits = models.CharField(max_length=4, null=True, db_index=False)
+    user = models.ForeignKey(get_user_model(), db_index=True, on_delete=models.DO_NOTHING)
+    plan = models.ForeignKey(Plan, db_index=True, on_delete=models.DO_NOTHING)
+    initial_status = models.CharField(
+        max_length=30,
+        choices=[
+            (PAID, 'Pago'),
+            (TRIALING, 'Experimentando'),
+            (PENDING_PAYMENT, 'Pagamento pendente'),
+            (UNPAID, 'Pagamento não efetuado no prazo'),
+            (ENDED, 'Encerrada'),
+            (CANCELED, 'Cancelada'),
+        ]
+    )
+
+    class Meta:
+        verbose_name = 'Assinatura'
+        verbose_name_plural = 'Assinaturas'
+
+    def __str__(self):
+        return self.pagarme_id
+
+    @property
+    def status(self) -> str:
+        """
+        Get status from subscriptions notifications
+        :return: str
+        """
+        try:
+            current_status = self.notifications.order_by('-creation').values('status').first()['status']
+        except:
+            current_status = self.initial_status
+        return current_status
+
+
+class SubscriptionNotification(models.Model):
+    """
+    Class representing a subscription event. Generaly from a notification coming from Pagarme
+    """
+    creation = models.DateTimeField(db_index=True, auto_now_add=True)
+    status = models.CharField(max_length=30,
+                              choices=[
+                                  (PAID, 'Pago'),
+                                  (TRIALING, 'Experimentando'),
+                                  (PENDING_PAYMENT, 'Pagamento pendente'),
+                                  (UNPAID, 'Inadimplente'),
+                                  (ENDED, 'Expirada'),
+                                  (CANCELED, 'Cancelada'),
+                              ])
+    subscription = models.ForeignKey(Subscription, db_index=True, on_delete=models.CASCADE, related_name='notifications')
+
+    class Meta:
+        ordering = ('-creation',)
+        indexes = [models.Index(fields=('-creation', 'subscription'), name='notification_subscrip_creation')]
+        verbose_name = 'Notificação de Assinatura'
+        verbose_name_plural = 'Notificações de Assinatura'
+
+
 class PagarmePaymentItem(models.Model):
     class Meta:
         unique_together = [['payment', 'item']]
@@ -154,6 +278,7 @@ class PagarmePayment(models.Model):
     installments = models.IntegerField('Parcelas', validators=[MinValueValidator(1)])
     items = models.ManyToManyField(PagarmeItemConfig, through=PagarmePaymentItem, related_name='payments')
     user = models.ForeignKey(get_user_model(), db_index=True, on_delete=models.DO_NOTHING, null=True)
+    subscription = models.ForeignKey(Subscription, db_index=True, on_delete=models.DO_NOTHING, null=True, related_name='payments')
 
     class Meta:
         ordering = ('-id',)
@@ -188,9 +313,12 @@ class PagarmePayment(models.Model):
                       transaction_id=str(pagarme_json['id']))
         if payment_method == CREDIT_CARD:
             payment.card_id = pagarme_json['card']['id']
-        all_payments_items, payment_config = payment.payments_items_from_pagarme_json(pagarme_json)
 
         current_status = pagarme_json['status']
+        if pagarme_json.get('subscription_id') is not None:
+            return payment, None
+
+        all_payments_items, payment_config = payment.payments_items_from_pagarme_json(pagarme_json)
         if current_status == REFUSED:
             return payment, all_payments_items
         item_prices_sum = sum(payment_item.price for payment_item in all_payments_items)
@@ -211,6 +339,23 @@ class PagarmePayment(models.Model):
                 f'deveria dar {amount_after_interests} mas deu {payment.amount}'
             )
         return payment, all_payments_items
+
+    @classmethod
+    def from_pagarme_subscription(cls, pagarme_json):
+        payment_method = pagarme_json['payment_method']
+        current_transaction = pagarme_json['current_transaction']
+        payment = cls(
+            payment_method=payment_method,
+            amount=current_transaction['authorized_amount'],
+            card_last_digits=current_transaction['card_last_digits'],
+            installments=current_transaction['installments'],
+            transaction_id=str(current_transaction['id'])
+        )
+
+        if payment_method == CREDIT_CARD:
+            payment.card_id = pagarme_json['card']['id']
+
+        return payment
 
     def extract_boleto_data(self, pagarme_json):
         if self.payment_method == BOLETO:
@@ -254,15 +399,6 @@ class PagarmePayment(models.Model):
         all_payments_items = [first_payment_item]
         all_payments_items.extend(payment_item for _, payment_item in payment_items)
         return all_payments_items, payment_config
-
-
-PROCESSING = 'processing'
-AUTHORIZED = 'authorized'
-PAID = 'paid'
-REFUNDED = 'refunded'
-PENDING_REFUND = 'pending_refund'
-WAITING_PAYMENT = 'waiting_payment'
-REFUSED = 'refused'
 
 
 class PagarmeNotification(models.Model):
@@ -379,6 +515,40 @@ class UserPaymentProfile(models.Model):
             name=customer['name'],
             email=customer['email'],
             phone=customer['phone_numbers'][-1].replace('+', ''),
+            street=address['street'],
+            complementary=address.get('complementary', '') or '',
+            street_number=address['street_number'],
+            neighborhood=address['neighborhood'],
+            city=address['city'],
+            state=address['state'],
+            zipcode=address['zipcode'],
+            address_country=address['country'],
+            card_id=card_id
+        )
+
+    @classmethod
+    def from_pagarme_subscription(cls, django_user_id, pagarme_subscription):
+        """
+        Creates UserPaymentProfile from pagarme api json subscription
+        :param django_user_id: django user id
+        :param pagarme_subscription: pagarme api subscription dict
+        :return: UserPaymentProfile
+        """
+        customer = pagarme_subscription['customer']
+        phone = pagarme_subscription['phone']
+        address = pagarme_subscription['address']
+        card = pagarme_subscription.get('card')
+        card_id = None if card is None else card.get('id')
+
+        return cls(
+            user_id=django_user_id,
+            customer_type='individual' if customer['type'] is None else customer['type'],
+            costumer_country=customer['country'] if customer['country'] is not None else address['country'],
+            document_number=customer['document_number'],
+            document_type=customer['document_type'],
+            name=customer['name'],
+            email=customer['email'],
+            phone=f'{phone["ddi"]} {phone["ddd"]} {phone["number"]}',
             street=address['street'],
             complementary=address.get('complementary', '') or '',
             street_number=address['street_number'],

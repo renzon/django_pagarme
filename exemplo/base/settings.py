@@ -13,7 +13,7 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-from decouple import config
+from decouple import config, Csv
 from dj_database_url import parse as dburl
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -31,7 +31,7 @@ CHAVE_PAGARME_CRIPTOGRAFIA_PUBLICA = config('CHAVE_PAGARME_CRIPTOGRAFIA_PUBLICA'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['1805e365912e.ngrok.io', 'localhost']
+ALLOWED_HOSTS = ['7a7ad7e7fdef.ngrok.io', 'localhost', '127.0.0.1']
 
 # Application definition
 
@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django_pagarme',
     'pagamentos',
+    'assinaturas',
     'phonenumber_field'
 ]
 

@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.utils.safestring import mark_safe
 
 from django_pagarme.models import (
-    PagarmeFormConfig, PagarmeItemConfig, PagarmeNotification, PagarmePayment, UserPaymentProfile,
+    PagarmeFormConfig, PagarmeItemConfig, PagarmeNotification, PagarmePayment, UserPaymentProfile, Plan, Subscription, SubscriptionNotification
 )
 
 
@@ -58,3 +58,52 @@ class PagarmeNotificationAdmin(admin.ModelAdmin):
 class UserPaymentProfileAdmin(admin.ModelAdmin):
     list_display = ('user', 'name', 'email', 'phone')
     search_fields = ('email', 'user__email')
+
+
+@admin.register(Plan)
+class PlanAdmin(admin.ModelAdmin):
+    list_display = ('name', 'slug', 'amount', 'days', 'payment_methods', 'available_until')
+    readonly_fields = (
+        'name',
+        'amount',
+        'days',
+        'trial_days',
+        'charges',
+        'invoice_reminder',
+        'pagarme_id',
+        'payment_methods',
+    )
+
+    def has_add_permission(self, *args, **kwargs):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(Subscription)
+class SubscriptionAdmin(admin.ModelAdmin):
+    list_display = (
+        'user',
+        'plan',
+        'payment_method',
+        'card_id',
+        'card_last_digits',
+        'status',
+    )
+
+    def has_add_permission(self, *args, **kwargs):
+        return False
+
+    def has_change_permission(self, *args, **kwargs):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(SubscriptionNotification)
+class SubscriptionNotificationAdmin(admin.ModelAdmin):
+    list_display = ('subscription', 'status', 'creation')
+    search_fields = ('subscription__pagarme_id__exact',)
+    ordering = ('subscription', '-creation')
