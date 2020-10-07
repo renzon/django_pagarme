@@ -5,8 +5,6 @@ import responses
 from django.urls import reverse
 from model_bakery import baker
 
-from django_assertions import assert_contains, assert_templates_used, assert_templates_not_used
-from django_pagarme import facade
 from django_pagarme.models import Plan, PagarmePayment, Subscription
 
 

@@ -22,7 +22,13 @@ def plan(db):
 
 @pytest.fixture
 def subscription(plan):
-    return baker.make(Subscription, initial_status='paid', pagarme_id=str(SUBSCRIPTION_ID), plan=plan, payment_method='credit_card')
+    return baker.make(
+        Subscription,
+        initial_status='paid',
+        pagarme_id=str(SUBSCRIPTION_ID),
+        plan=plan,
+        payment_method='credit_card'
+    )
 
 
 @pytest.fixture

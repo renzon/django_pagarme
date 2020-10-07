@@ -10,7 +10,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from django_pagarme import facade
 from django_pagarme.facade import InvalidNotificationStatusTransition
-from django_pagarme.models import PaymentViolation, Plan
+from django_pagarme.models import PaymentViolation, Plan, PagarmeItemConfig
 
 logger = Logger(__file__)
 
@@ -181,7 +181,7 @@ def unavailable(request, slug):
         try:
             context = {'payment_item_config': facade.get_payment_item(slug)}
             template_name = 'django_pagarme/unavailable_payment_item.html'
-        except PaymentItemConfig.DoesNotExist:
+        except PagarmeItemConfig.DoesNotExist:
             raise Http404
     return render(request, template_name, context)
 
