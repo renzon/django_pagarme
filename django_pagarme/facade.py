@@ -388,7 +388,7 @@ def _save_plan(instance: Plan, plan_in_pagarme: dict) -> Plan:
     instance.days = plan_in_pagarme['days']
     instance.name = plan_in_pagarme['name']
     instance.trial_days = plan_in_pagarme['trial_days']
-    instance.payment_methods = ','.join(plan_in_pagarme['payment_methods'])
+    instance.payment_methods = ','.join(reversed(plan_in_pagarme['payment_methods']))
     instance.charges = plan_in_pagarme['charges']
     instance.invoice_reminder = plan_in_pagarme['invoice_reminder']
     instance.save()
@@ -422,7 +422,7 @@ def synchronize_plans():
     logger.info('Sincronia de planos concluída!')
 
 
-def list_plans() -> List[PagarmeItemConfig]:
+def list_plans() -> List[Plan]:
     return list(Plan.objects.filter().all())
 
 
