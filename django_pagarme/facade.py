@@ -287,7 +287,7 @@ def get_user_payment_profile(django_user_or_id) -> UserPaymentProfile:
     """
     User = get_user_model()
     if isinstance(django_user_or_id, User):
-        user_id = django_user_or_id.id
+        user_id = django_user_or_id.pk
     else:
         user_id = django_user_or_id
     return UserPaymentProfile.objects.get(user_id=user_id)
