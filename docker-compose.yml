@@ -4,7 +4,6 @@ services:
   database:
     container_name: django_pargarme_db
     image: postgres:11.5
-    restart: always
     volumes:
       - ./.pgdata:/var/lib/postgresql/data
     environment:
