@@ -8,7 +8,8 @@ from django_pagarme.models import (
 
 @admin.register(PagarmeItemConfig)
 class PagarmeItemConfigAdmin(admin.ModelAdmin):
-    list_display = ('name', 'slug', 'price', 'tangible', 'default_config', 'contact_form', 'checkout', 'available_until')
+    list_display = (
+        'name', 'slug', 'price', 'tangible', 'default_config', 'contact_form', 'checkout', 'available_until')
     list_filter = ('default_config',)
     prepopulated_fields = {'slug': ('name',)}
 
@@ -33,7 +34,7 @@ class PagarmeFormConfigAdmin(admin.ModelAdmin):
 
 @admin.register(PagarmePayment)
 class PagarmePaymentAdmin(admin.ModelAdmin):
-    search_fields = ('user__email',)
+    search_fields = ('user__email', 'transaction_id')
     list_display = (
         'user',
         'transaction_id',
@@ -45,6 +46,10 @@ class PagarmePaymentAdmin(admin.ModelAdmin):
         'installments'
     )
     list_filter = ('payment_method', 'items')
+    readonly_fields = list_display
+
+    def has_add_permission(self, request):
+        return False
 
 
 @admin.register(PagarmeNotification)
@@ -53,8 +58,21 @@ class PagarmeNotificationAdmin(admin.ModelAdmin):
     search_fields = ('payment__transaction_id__exact',)
     ordering = ('payment', '-creation')
 
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_add_permission(self, request):
+        return False
+
 
 @admin.register(UserPaymentProfile)
 class UserPaymentProfileAdmin(admin.ModelAdmin):
     list_display = ('user', 'name', 'email', 'phone')
     search_fields = ('email', 'user__email')
+    autocomplete_fields = ['user']
+
+    def has_add_permission(self, request):
+        return False
