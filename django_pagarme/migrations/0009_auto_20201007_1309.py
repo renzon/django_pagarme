@@ -7,7 +7,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('django_pagarme', '0007_pagarmepayment_subscription'),
+        ('django_pagarme', '0008_pagarmepayment_subscription'),
     ]
 
     operations = [

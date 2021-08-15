@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('django_pagarme', '0004_pagarme_item_config_available_until'),
+        ('django_pagarme', '0005_change_primary_key_to_big_integer'),
     ]
 
     operations = [

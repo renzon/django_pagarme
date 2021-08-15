@@ -14,6 +14,7 @@ one_year_installments_validators = [MaxValueValidator(12), MinValueValidator(1)]
 CREDIT_CARD = 'credit_card'
 BOLETO = 'boleto'
 CREDIT_CARD_AND_BOLETO = f'{CREDIT_CARD},{BOLETO}'
+NORMALIZED_BRAZIL_CODE = {'Brasil': 'br'}
 
 
 class PagarmeFormConfig(models.Model):
@@ -509,7 +510,7 @@ class UserPaymentProfile(models.Model):
         return cls(
             user_id=django_user_id,
             customer_type=customer['type'],
-            costumer_country=customer['country'],
+            costumer_country=NORMALIZED_BRAZIL_CODE.get(customer['country'], customer['country']),
             document_number=document['number'],
             document_type=document['type'],
             name=customer['name'],
@@ -522,7 +523,7 @@ class UserPaymentProfile(models.Model):
             city=address['city'],
             state=address['state'],
             zipcode=address['zipcode'],
-            address_country=address['country'],
+            address_country=NORMALIZED_BRAZIL_CODE.get(address['country'], address['country']),
             card_id=card_id
         )
 
@@ -539,11 +540,12 @@ class UserPaymentProfile(models.Model):
         address = pagarme_subscription['address']
         card = pagarme_subscription.get('card')
         card_id = None if card is None else card.get('id')
+        customer_country = customer['country'] if customer['country'] is not None else address['country']
 
         return cls(
             user_id=django_user_id,
             customer_type='individual' if customer['type'] is None else customer['type'],
-            costumer_country=customer['country'] if customer['country'] is not None else address['country'],
+            costumer_country=NORMALIZED_BRAZIL_CODE.get(customer_country, customer_country),
             document_number=customer['document_number'],
             document_type=customer['document_type'],
             name=customer['name'],
@@ -556,6 +558,6 @@ class UserPaymentProfile(models.Model):
             city=address['city'],
             state=address['state'],
             zipcode=address['zipcode'],
-            address_country=address['country'],
+            address_country=NORMALIZED_BRAZIL_CODE.get(address['country'], address['country']),
             card_id=card_id
         )

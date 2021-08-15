@@ -70,7 +70,7 @@
                     name: '{{customer.name}}',
                     email: '{{customer.email}}',
                     type: '{{ customer.type }}',
-                    country: 'br', /* TODO: country name set by subscription is not accepted by payment with items*/
+                    country: '{{customer.country}}',
                     documents: [{
                         type: '{{customer.document.type}}',
                         number: '{{customer.document.number}}'
@@ -84,7 +84,7 @@
                 billing: {
                     name: '{{customer.name}}',
                     address: {
-                        country: 'br',  /* TODO: country name set by subscription is not accepted by payment with items */
+                        country: '{{ address.country }}',
                         state: '{{ address.state }}',
                         city: '{{ address.city }}',
                         neighborhood: '{{ address.neighborhood }}',

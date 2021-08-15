@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('django_pagarme', '0005_plan'),
+        ('django_pagarme', '0006_plan'),
     ]
 
     operations = [
