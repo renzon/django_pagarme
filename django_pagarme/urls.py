@@ -11,4 +11,11 @@ urlpatterns = [
     path('notification/<slug:slug>', views.notification, name='notification'),
     path('pagarme/<slug:slug>', views.pagarme, name='pagarme'),
     path('<slug:slug>', views.contact_info, name='contact_info'),
+    path('subscription/<slug:slug>', views.subscription, name='subscription'),
+    path('subscribe/<slug:slug>', views.subscribe, name='subscribe'),
+    path(
+        'subscription_payment_bank_slip/<int:transaction_id>',
+        views.subscription_payment_bank_slip,
+        name='subscription_payment_bank_slip'
+    ),
 ]

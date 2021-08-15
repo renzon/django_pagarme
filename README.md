@@ -59,8 +59,8 @@ Crie uma app e no diretório de templates, crie suas páginas como descrito abai
 
 ### Dados de Contato
 
-Formulário para obter dados de contato do usuário 
- 
+Formulário para obter dados de contato do usuário
+
 Template `django_pagarme/contact_form.html`
 
 Ex:
@@ -77,7 +77,7 @@ Ex:
 ### Formulário de erros
 
 Formulário de erros de dados de contato do usuário.
- 
+
 Template `django_pagarme/contact_form_errors.html`
 
 Pode herdar de `contact_form.html` no caso de vc decidir que quer usar a mesma página com formulário
@@ -90,7 +90,7 @@ Ex:
 ### Página de Checkout do Pagarme
 
 Página onde o usuário preenche os dados de pagamento.
- 
+
 Template `django_pagarme/pagarme.html`
 
 Se você quiser customizar a página de boleto para um produto específico, crie um
@@ -131,7 +131,7 @@ Ex:
 ### Página de visualização de Boleto
 
 Página onde o usuário acessa os dados do boleto para pagamento
- 
+
 Template `django_pagarme/show_boleto_data.html`
 
 Se você quiser customizar a página de boleto para um produto específico, crie um
@@ -161,7 +161,7 @@ Ex:
 </html>
 ```
 
-Você também pode criar uma página de boleto específica para cada produto. 
+Você também pode criar uma página de boleto específica para cada produto.
 Suponha um produto com slug 'curso-avancado'. A view de captura irá tentar então renderizar
 o template `django_pagarme/show_boleto_data_curso_avancado.html`. Dessa maneira vc pode customizar dados de acordo com o produto vendido.
 
@@ -169,8 +169,8 @@ o template `django_pagarme/show_boleto_data_curso_avancado.html`. Dessa maneira 
 ### Página de obrigado
 
 Página para onde o usuário é levado ao finalizar o pagamento
- 
-Template `django_pagarme/thanks.html`. 
+
+Template `django_pagarme/thanks.html`.
 Se você quiser customizar a página de obrigado para um produto específico, crie um
 template com sufixo do slug do produto. Supondo slug `upsell-item`, o nome do template ficaria `django_pagarme/thanks_upsell_item.html`
 
@@ -194,7 +194,7 @@ Ex:
 </html>
 ```
 
-Você também pode criar uma página de obrigado específica para cada produto. 
+Você também pode criar uma página de obrigado específica para cada produto.
 Suponha um produto com slug 'curso-avancado'. A view de obrigado irá tentar então renderizar
 o template `django_pagarme/thank_curso_avancado.html`. Dessa maneira vc pode customizar dados de acordo com o produto vendido.
 
@@ -302,7 +302,7 @@ Você pode controlar a disponibilidade dos itens através da propriedade `availa
 Basta setar uma data a partir do qual o produto ficará indisponível.
 
 Se precisar de mais flexibilidade, você pode definir uma estratégia específica.
-Para isso, crie um chamável que recebe a configuração e a requisição web como parâmetros e retorne verdadeiro caso o produto esteja disponível, falso caso contrário. 
+Para isso, crie um chamável que recebe a configuração e a requisição web como parâmetros e retorne verdadeiro caso o produto esteja disponível, falso caso contrário.
 
 Ex:
 ```python
@@ -312,8 +312,8 @@ def is_payment_config_item_available(payment_item_config: PagarmeItemConfig, req
 
 facade.set_available_payment_config_item_strategy(is_payment_config_item_available)
 ```
- 
-IMPORTANTE: O comportamento da sua stratégia sobrescreve a lógica do atributo `available_until`. Portanto, você deve utilizar
+
+IMPORTANTE: O comportamento da sua estratégia sobrescreve a lógica do atributo `available_until`. Portanto, você deve utilizar
 o método `payment_item_config.is_available()` em sua estratégia caso queira que o atributo continua efetivo.
 
 ### Configuração de Pagamento
@@ -351,12 +351,44 @@ Segue exemplo de um curso chamado Pytools custando R$ 97.00
 
 Uma Configuração geral serve como configuração padrão de um item
 
+## Recorrência
+
+Para usar as features de recorrência, o primeiro passo é sincronizar os planos cadastrados e configurados previamente no dashboard do pagar.me,
+através do command:
+```console
+$ python manage.py django_pagarme_sync_plans
+```
+
+### Páginas de recorrência
+
+Para criação da assinatura, é usado o checkout integrado do pagar.me e, conforme explicado acima para os itens de pagamento, é necessário criar os templates:
+- subscription.html, para abrir o modal do pagar.me
+- thanks_plan.html, para finalizar a compra da assinatura
+- unavailable_plan.html, para planos que não estejam mais disponível na data (configurável via admin)
+
+### Listener de mudança de status de assinatura
+
+O módulo de recorrência também oferece uma fachada para registrar funções listeners que serão executadas ao receber um postback que altere o status de uma assinatura:
+
+```python
+from django_pagarme import facade
+
+
+def print_subscription_id(subscription_id):
+    subscription = facade.find_subscription_by_id(subscription_id)
+    print(subscription, subscription.status())
+
+
+facade.add_subscription_status_changed(print_subscription_id)
+```
+
+
 ### Outras classes de interesse
 
 No admin ainda existem 4 classes de interesse:
 
 1. PagarmePayment : reprensenta um pagamento (transction) do pagarme
-1. PagarmeNotification: representa uma notificacão do pagarme. Um pagamento pode possuir múltiplas notificações  
+1. PagarmeNotification: representa uma notificacão do pagarme. Um pagamento pode possuir múltiplas notificações
 1. UserPaymentProfile: representa dados gerais preenchidos no último checkout feito no pagarme. É usado para preencher os dados em um próximo pagamento e está relacioando com o usuário Django.
 
 
@@ -365,7 +397,7 @@ Um exemplo completo de aplicação se encontra no diretório `exemplo`
 
 ## Contribuidores
 
-@walison17, @renzon 
+@walison17, @renzon, @rfdeoliveira
 
 ## Como Contribuir
 
@@ -385,7 +417,7 @@ CHAVE_PAGARME_CRIPTOGRAFIA_PUBLICA=coloque_sua_chave_publica_aqui
 CHAVE_PAGARME_API_PRIVADA=coloque_sua_chave_privada_aqui
 PHONENUMBER_DEFAULT_REGION=BR
 DATABASE_URL=postgres://postgres:postgres@localhost:5432/django_pagarme
-``` 
+```
 Obs: Troque as chaves do pagarme pelas suas chaves do [ambiente de teste](https://docs.pagar.me/docs/api-key-e-encryption-key) para testar localmente.
 
 Se for rodar em computador local, use um serviço como o [ngrok](https://ngrok.com/) para mapear suas portas locais na internet
@@ -394,7 +426,7 @@ Instale o pipenv:
 
 ```
 python -m pip install pipenv
-``` 
+```
 
 Navegue até a pasta exemplo e rode:
 
@@ -416,7 +448,7 @@ platform darwin -- Python 3.8.0, pytest-5.3.5, py-1.8.1, pluggy-0.13.1
 django: settings: base.settings (from ini)
 rootdir: /Users/renzo/PycharmProjects/django_pagarme, inifile: setup.cfg
 plugins: mock-2.0.0, cov-2.8.1, django-3.8.0
-collected 85 items                                                                                                                 
+collected 85 items
 
 base/tests/test_home.py .                                                                                                    [  1%]
 pagamentos/tests/test_captura_boleto.py ............                                                                         [ 15%]
@@ -429,7 +461,7 @@ pagamentos/tests/test_thanks.py ..                                              
 base/tests/test_contact_info.py ........                                                                                     [ 97%]
 base/tests/test_facade.py ..                                                                                                 [100%]
 
-======================================================== 85 passed in 9.26s ======================================================== 
+======================================================== 85 passed in 9.26s ========================================================
 ```
 
 

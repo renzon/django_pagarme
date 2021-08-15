@@ -42,5 +42,5 @@ facade.set_available_payment_config_item_strategy(debug_qs_strategy)
 
 
 def home(request):
-    ctx = {'payment_items': facade.list_payment_item_configs()}
+    ctx = {'payment_items': facade.list_payment_item_configs(), 'plans': facade.list_plans()}
     return render(request, 'home.html', ctx)

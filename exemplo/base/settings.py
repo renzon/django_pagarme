@@ -31,7 +31,7 @@ CHAVE_PAGARME_CRIPTOGRAFIA_PUBLICA = config('CHAVE_PAGARME_CRIPTOGRAFIA_PUBLICA'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['1805e365912e.ngrok.io', 'localhost']
+ALLOWED_HOSTS = ['7a7ad7e7fdef.ngrok.io', 'localhost', '127.0.0.1']
 
 # Application definition
 
@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django_pagarme',
     'pagamentos',
+    'assinaturas',
     'phonenumber_field'
 ]
 
@@ -88,8 +89,6 @@ default_db_url = 'sqlite:///' + os.path.join(BASE_DIR, 'db.sqlite3')
 DATABASES = {
     'default': config('DATABASE_URL', default=default_db_url, cast=dburl),
 }
-
-
 
 # Password validation
 # https://docs.djangoproject.com/en/2.2/ref/settings/#auth-password-validators

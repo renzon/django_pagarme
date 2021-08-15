@@ -5,8 +5,20 @@
     <title>Compra link</title>
 </head>
 <body>
+<h1>Django pagar.me - Exemplo</h1>
+
+<h2>Produtos</h2>
+<ul>
 {% for config in payment_items %}
-    <a href="{{config.get_absolute_url}}">{{config.name}}</a>
+    <li><a href="{{config.get_absolute_url}}">{{config.name}}</a></li>
 {% endfor %}
+</ul>
+
+<h2>Planos de assinatura</h2>
+<ul>
+{% for plan in plans %}
+    <li><a href="{{plan.get_absolute_url}}">{{plan.name}}</a></li>
+{% endfor %}
+</ul>
 </body>
 </html>
