@@ -1,7 +1,8 @@
+import json
 from collections import ChainMap
 from logging import Logger
 
-from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseNotAllowed
+from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseNotAllowed, Http404
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils.http import urlencode
@@ -9,7 +10,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from django_pagarme import facade
 from django_pagarme.facade import InvalidNotificationStatusTransition
-from django_pagarme.models import PaymentViolation
+from django_pagarme.models import PaymentViolation, Plan, PagarmeItemConfig
 
 logger = Logger(__file__)
 
@@ -75,12 +76,19 @@ def capture(request, slug, token):
 
 
 def thanks(request, slug):
-    ctx = {'payment_item_config': facade.find_payment_item_config(slug)}
     suffix = slug.replace('-', '_')
-    templates = [
-       f'django_pagarme/thanks_{suffix}.html',
-       'django_pagarme/thanks.html'
-    ]
+    try:
+        ctx = {'plan': facade.get_plan(slug)}
+        templates = [
+            f'django_pagarme/thanks_plan_{suffix}.html',
+            'django_pagarme/thanks_plan.html'
+        ]
+    except Plan.DoesNotExist:
+        ctx = {'payment_item_config': facade.find_payment_item_config(slug)}
+        templates = [
+           f'django_pagarme/thanks_{suffix}.html',
+           'django_pagarme/thanks.html'
+        ]
 
     return render(request, templates, ctx)
 
@@ -104,14 +112,25 @@ def notification(request, slug):
 
     raw_body = request.body.decode('utf8')
     expected_signature = request.headers.get('X-Hub-Signature', '')
-    transaction_id = request.POST['transaction[id]']
     current_status = request.POST['current_status']
-    try:
-        facade.handle_notification(transaction_id, current_status, raw_body, expected_signature, request.POST)
-    except PaymentViolation:
-        return HttpResponseBadRequest()
-    except InvalidNotificationStatusTransition:
-        pass
+    event = request.POST['event']
+    if event == 'subscription_status_changed':
+        subscription_id = request.POST['subscription[id]']
+        try:
+            facade.handle_subscription_notification(
+               subscription_id, current_status, raw_body, expected_signature, request.POST
+            )
+        except Exception:
+            return HttpResponseBadRequest()
+
+    else:
+        transaction_id = request.POST['transaction[id]']
+        try:
+            facade.handle_notification(transaction_id, current_status, raw_body, expected_signature, request.POST)
+        except PaymentViolation:
+            return HttpResponseBadRequest()
+        except InvalidNotificationStatusTransition:
+            pass
 
     return HttpResponse()
 
@@ -155,5 +174,80 @@ def pagarme(request, slug):
 
 
 def unavailable(request, slug):
-    payment_item = facade.get_payment_item(slug)
-    return render(request, 'django_pagarme/unavailable_payment_item.html', {'payment_item_config': payment_item})
+    try:
+        context = {'plan': facade.get_plan(slug)}
+        template_name = 'django_pagarme/unavailable_plan.html'
+    except Plan.DoesNotExist:
+        try:
+            context = {'payment_item_config': facade.get_payment_item(slug)}
+            template_name = 'django_pagarme/unavailable_payment_item.html'
+        except PagarmeItemConfig.DoesNotExist:
+            raise Http404
+    return render(request, template_name, context)
+
+
+def subscription(request, slug):
+    plan = facade.get_plan(slug)
+    if not plan.is_available():
+        return redirect(reverse('django_pagarme:unavailable', kwargs={'slug': slug}))
+    open_modal = request.GET.get('open_modal', '').lower() == 'true'
+    review_informations = not (request.GET.get('review_informations', '').lower() == 'false')
+    customer_qs_data = {k: request.GET.get(k, '') for k in ['name', 'email', 'phone']}
+    customer_qs_data = {k: v for k, v in customer_qs_data.items() if v}
+    user = request.user
+    address = None
+    if user.is_authenticated:
+        user_data = {'external_id': user.id, 'name': user.first_name, 'email': user.email}
+        try:
+            payment_profile = facade.get_user_payment_profile(user)
+        except facade.UserPaymentProfileDoesNotExist:
+            customer = ChainMap(customer_qs_data, user_data)
+        else:
+            customer = ChainMap(customer_qs_data, payment_profile.to_customer_dict(), user_data)
+            address = payment_profile.to_billing_address_dict()
+    else:
+        customer = customer_qs_data
+    ctx = {
+        'plan': plan,
+        'open_modal': open_modal,
+        'review_informations': review_informations,
+        'customer': customer,
+        'slug': slug,
+        'address': address
+    }
+    suffix = slug.replace('-', '_')
+    templates = [
+        f'django_pagarme/subscription_{suffix}.html',
+        'django_pagarme/subscription.html'
+    ]
+
+    return render(request, templates, ctx)
+
+
+@csrf_exempt
+def subscribe(request, slug):
+    plan = facade.get_plan(slug)
+    payload = json.loads(request.body)
+    try:
+        payment = facade.create_subscription(plan, payload, request.user.id)
+        if payment.payment_method == facade.BOLETO:
+            callback_url = reverse(
+                'django_pagarme:subscription_payment_bank_slip',
+                kwargs={'transaction_id': payment.transaction_id}
+            )
+        else:
+            callback_url = reverse('django_pagarme:thanks', kwargs={'slug': slug})
+    except Exception:
+        return HttpResponseBadRequest()
+
+    return HttpResponse(callback_url)
+
+
+def subscription_payment_bank_slip(request, transaction_id):
+    payment = facade.find_payment_by_transaction(transaction_id)
+    suffix = payment.subscription.plan.slug.replace('-', '_')
+    templates = [
+        f'django_pagarme/show_boleto_data_{suffix}.html',
+        'django_pagarme/show_boleto_data.html'
+    ]
+    return render(request, templates, {'payment': payment})

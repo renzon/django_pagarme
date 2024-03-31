@@ -2,18 +2,23 @@ from django import template
 from django.conf import settings
 from django.urls import reverse
 
-from django_pagarme.models import PagarmeItemConfig
+from django_pagarme.models import PagarmeItemConfig, Plan
 
 register = template.Library()
 
 
 @register.inclusion_tag('django_pagarme/pagarme_js_form.html')
-def show_pagarme(payment_item: PagarmeItemConfig, customer: dict = None, address=None, open_modal: bool = False,
-                 review_informations: bool = True):
-    notification_path = reverse('django_pagarme:notification', kwargs={'slug': payment_item.slug})
+def show_pagarme(payment_item: PagarmeItemConfig = None, customer: dict = None, address=None, open_modal: bool = False,
+                 review_informations: bool = True, plan: Plan = None):
+    if payment_item is not None:
+        kwargs = {'slug': payment_item.slug}
+    elif plan is not None:
+        kwargs = {'slug': plan.slug}
+    notification_path = reverse('django_pagarme:notification', kwargs=kwargs)
     domain = settings.ALLOWED_HOSTS[0]
     return {
         'payment_item': payment_item,
+        'plan': plan,
         'open_modal': open_modal,
         'review_informations': review_informations,
         'customer': customer,

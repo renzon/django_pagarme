@@ -1,23 +1,28 @@
+from logging import Logger
 from typing import Callable, List
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import transaction as django_transaction
 from django.urls import reverse
-from pagarme import postback, transaction, authentication_key
+from pagarme import postback, transaction, authentication_key, plan, subscription
 
 from django_pagarme.forms import ContactForm
 from django_pagarme.models import (
     AUTHORIZED, BOLETO, CREDIT_CARD, PAID, PENDING_REFUND, PROCESSING, PagarmeItemConfig, PagarmeNotification,
     PagarmePayment, PaymentViolation, REFUNDED, REFUSED, UserPaymentProfile, WAITING_PAYMENT, PagarmePaymentItem,
+    Plan, Subscription, SubscriptionNotification, PENDING_PAYMENT, TRIALING, ENDED, CANCELED, UNPAID,
 )
 
 # It's here to be available on facade contract
 UserPaymentProfileDoesNotExist = UserPaymentProfile.DoesNotExist
 PagarmePaymentItemDoesNotExist = PagarmePaymentItem.DoesNotExist
 
+logger = Logger(__file__)
+
 __all__ = [
     'get_payment_item',
+    'get_plan',
     'capture',
     'PaymentViolation',
     'InvalidContactData',
@@ -375,3 +380,246 @@ def is_payment_config_item_available(payment_item_config: PagarmeItemConfig, req
 def set_available_payment_config_item_strategy(strategy: Callable):
     global is_payment_config_item_available
     is_payment_config_item_available = strategy
+
+
+def _save_plan(instance: Plan, plan_in_pagarme: dict) -> Plan:
+    instance.pagarme_id = plan_in_pagarme['id']
+    instance.amount = plan_in_pagarme['amount']
+    instance.days = plan_in_pagarme['days']
+    instance.name = plan_in_pagarme['name']
+    instance.trial_days = plan_in_pagarme['trial_days']
+    instance.payment_methods = ','.join(reversed(plan_in_pagarme['payment_methods']))
+    instance.charges = plan_in_pagarme['charges']
+    instance.invoice_reminder = plan_in_pagarme['invoice_reminder']
+    instance.save()
+    return instance
+
+
+def _remove_orphan_plans(all_plans: list) -> None:
+    plans_ids = [str(p['id']) for p in all_plans]
+    for p in Plan.objects.all():
+        if p.pagarme_id not in plans_ids:
+            p.delete()
+
+
+def synchronize_plans():
+    plans_to_sync = plan.find_all()
+    count = 0
+    total = len(plans_to_sync)
+    logger.info('Iniciando sincronia de planos...')
+    for n, p in enumerate(plans_to_sync):
+        logger.info(f'Sincronizando plano {n + 1} de {total}...')
+        try:
+            pagarme_plan = Plan.objects.get(pagarme_id=p['id'])
+            logger.info(f'Plano {p["name"]} atualizado!')
+        except Plan.DoesNotExist:
+            pagarme_plan = Plan()
+            logger.info(f'Plano {p["name"]} criado!')
+        finally:
+            _save_plan(pagarme_plan, p)
+
+    _remove_orphan_plans(plans_to_sync)
+    logger.info('Sincronia de planos concluída!')
+
+
+def list_plans() -> List[Plan]:
+    return list(Plan.objects.filter().all())
+
+
+def get_plan(slug: str) -> Plan:
+    return Plan.objects.filter(slug=slug).get()
+
+
+def create_subscription(plan: Plan, checkout_payload: dict, django_user_id=None) -> PagarmePayment:
+    domain = settings.ALLOWED_HOSTS[0]
+    notification_path = reverse('django_pagarme:notification', kwargs={'slug': plan.slug})
+    postback_url = f'https://{domain}{notification_path}'
+    subscription_data = {
+        'plan_id': plan.pagarme_id,
+        'customer': checkout_payload['customer'],
+        'payment_method': checkout_payload['payment_method'],
+        'postback_url': postback_url,
+    }
+
+    if 'credit_card' in checkout_payload['payment_method']:
+        subscription_data.update({'card_hash': checkout_payload['card_hash']})
+
+    pagarme_subscription = subscription.create(subscription_data)
+    current_transaction = pagarme_subscription['current_transaction']
+    payment = PagarmePayment.from_pagarme_subscription(pagarme_subscription)
+
+    if django_user_id is None:
+        try:
+            user = _user_factory(pagarme_subscription)
+        except ImpossibleUserCreation:
+            pass
+        else:
+            django_user_id = user.id
+
+    if django_user_id is not None:
+        current_transaction.update({'customer': pagarme_subscription['customer']})
+        profile = UserPaymentProfile.from_pagarme_subscription(django_user_id, pagarme_subscription)
+        profile.save()
+
+    payment.user_id = django_user_id
+
+    subscription_data = {
+        'initial_status': pagarme_subscription['status'],
+        'pagarme_id': pagarme_subscription['id'],
+        'plan': plan,
+        'user': payment.user,
+        'payment_method': pagarme_subscription['payment_method'],
+    }
+    if pagarme_subscription['payment_method'] == CREDIT_CARD:
+        subscription_data.update({
+            'card_id': pagarme_subscription['card']['id'],
+            'card_last_digits': pagarme_subscription['card']['last_digits']
+        })
+
+    new_subscription = Subscription(**subscription_data)
+    new_subscription.save()
+
+    payment.subscription = new_subscription
+    payment.extract_boleto_data(current_transaction)
+    payment.save()
+
+    return payment
+
+
+_subscription_status_changed_listeners = []
+
+
+def add_subscription_status_changed(listener: Callable):
+    """
+    Listener added with this function will be called receiving Subscription as parameter
+    :param listener:
+    :return: nothing
+    """
+    return _subscription_status_changed_listeners.append(listener)
+
+
+def find_subscription_by_id(subscription_id: str) -> Subscription:
+    subscription_id = str(subscription_id)
+    return Subscription.objects.get(pagarme_id=subscription_id)
+
+
+def handle_subscription_notification(
+        subscription_id: str, current_status: str, raw_body: str,
+        expected_signature: str, pagarme_notification_dict,
+) -> SubscriptionNotification:
+    if not postback.validate(expected_signature, raw_body):
+        raise PaymentViolation('')
+
+    subscription = find_subscription_by_id(subscription_id)
+    try:
+        transaction_id = pagarme_notification_dict['subscription[current_transaction][id]']
+        payment_id = PagarmePayment.objects.values_list('id').get(transaction_id=transaction_id)[0]
+    except PagarmePayment.DoesNotExist:
+        subscription_dict = to_pagarme_subscription(pagarme_notification_dict)
+        pagarme_payment = PagarmePayment.from_pagarme_subscription(subscription_dict)
+        try:
+            user = _user_factory(subscription_dict)
+        except ImpossibleUserCreation:
+            pass
+        else:
+            pagarme_payment.user_id = user.id
+            profile = UserPaymentProfile.from_pagarme_subscription(user.id, subscription_dict)
+            profile.save()
+
+    return _save_subscription_notification(subscription_id, current_status)
+
+
+def to_pagarme_subscription(pagarme_notification_dict: dict) -> dict:
+    """
+    Tranform from notification dict to subscription dict
+    """
+    subscription_dict = {
+        'plan': {
+            'id': pagarme_notification_dict['subscription[plan][id]'],
+        },
+        'id': pagarme_notification_dict['subscription[id]'],
+        'current_transaction': {
+            'status': pagarme_notification_dict['subscription[current_transaction][status]'],
+            'authorized_amount': pagarme_notification_dict['subscription[current_transaction][authorized_amount]'],
+            'id': pagarme_notification_dict['subscription[current_transaction][id]'],
+            'cost': pagarme_notification_dict['subscription[current_transaction][cost]'],
+            'installments': pagarme_notification_dict['subscription[current_transaction][installments]'],
+            'card_holder_name': pagarme_notification_dict['subscription[current_transaction][card_holder_name]'],
+            'card_last_digits': pagarme_notification_dict['subscription[current_transaction][card_last_digits]'],
+            'card_first_digits': pagarme_notification_dict['subscription[current_transaction][card_first_digits]'],
+            'card_brand': pagarme_notification_dict['subscription[current_transaction][card_brand]'],
+            'payment_method': pagarme_notification_dict['subscription[current_transaction][payment_method]'],
+            'boleto_url': pagarme_notification_dict['subscription[current_transaction][boleto_url]'],
+            'boleto_barcode': pagarme_notification_dict['subscription[current_transaction][boleto_barcode]'],
+            'boleto_expiration_date': pagarme_notification_dict['subscription[current_transaction][boleto_expiration_date]'],
+        },
+        'payment_method': pagarme_notification_dict['subscription[payment_method]'],
+        'status': pagarme_notification_dict['current_status'],
+        'phone': {
+            'ddi': pagarme_notification_dict['subscription[phone][ddi]'],
+            'ddd': pagarme_notification_dict['subscription[phone][ddd]'],
+            'number': pagarme_notification_dict['subscription[phone][number]'],
+        },
+        'address': {
+            'street': pagarme_notification_dict['subscription[address][street]'],
+            'complementary': pagarme_notification_dict['subscription[address][complementary]'],
+            'street_number': pagarme_notification_dict['subscription[address][street_number]'],
+            'neighborhood': pagarme_notification_dict['subscription[address][neighborhood]'],
+            'city': pagarme_notification_dict['subscription[address][city]'],
+            'state': pagarme_notification_dict['subscription[address][state]'],
+            'zipcode': pagarme_notification_dict['subscription[address][zipcode]'],
+            'country': pagarme_notification_dict['subscription[address][country]'],
+        },
+        'customer': {
+            'id': pagarme_notification_dict['subscription[customer][id]'],
+            'type': pagarme_notification_dict['subscription[customer][type]'],
+            'country': pagarme_notification_dict['subscription[customer][country]'],
+            'document_number': pagarme_notification_dict['subscription[customer][document_number]'],
+            'document_type': pagarme_notification_dict['subscription[customer][document_type]'],
+            'name': pagarme_notification_dict['subscription[customer][name]'],
+            'email': pagarme_notification_dict['subscription[customer][email]'],
+        },
+    }
+
+    if pagarme_notification_dict.get('subscription[card]'):
+        subscription_dict.update({
+            'card': {
+                'id': pagarme_notification_dict['subscription[customer][email]'],
+                'brand': pagarme_notification_dict['subscription[customer][email]'],
+                'holder_name': pagarme_notification_dict['subscription[customer][email]'],
+                'first_digits': pagarme_notification_dict['subscription[customer][email]'],
+                'last_digits': pagarme_notification_dict['subscription[customer][email]'],
+                'country': pagarme_notification_dict['subscription[customer][email]'],
+                'expiration_date': pagarme_notification_dict['subscription[customer][email]'],
+            }
+        })
+
+    return subscription_dict
+
+
+_impossible_subscription_states = {
+    TRIALING: {TRIALING},
+    PAID: {TRIALING, PAID},
+    UNPAID: {TRIALING, UNPAID},
+    PENDING_PAYMENT: {TRIALING, PENDING_PAYMENT},
+    ENDED: {TRIALING, PAID, PENDING_PAYMENT, UNPAID, ENDED, CANCELED},
+    CANCELED: {TRIALING, PAID, PENDING_PAYMENT, UNPAID, ENDED, CANCELED},
+}
+
+
+def _save_subscription_notification(subscription_id, current_status):
+    """
+    Will save the notication depending on last status and current status
+    raise Invalid Current Status in case current status is incompatible with last status
+    :param subscription_id:
+    :param current_status:
+    :return:
+    """
+    subscription = find_subscription_by_id(subscription_id)
+    last_status = subscription.status
+    if current_status in _impossible_subscription_states.get(last_status, {}):
+        raise InvalidNotificationStatusTransition(f'Invalid transition {last_status} -> {current_status}')
+    notification = SubscriptionNotification(status=current_status, subscription=subscription).save()
+    for listener in _subscription_status_changed_listeners:
+        listener(subscription_id=subscription.id)
+    return notification
